@@ -1,0 +1,75 @@
+---
+title: "BK Workspace"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(corrgram)
+require(corrplot)
+```
+
+```{r}
+apply(data, 2, FUN = function(x){sum(is.na(x))}) #last review and reviews per month have tons of missing values. Last review would not be useful in any case, reviews per month is maybe slightly better than number of reviews, but not worth the missingness. POSSIBLE. Impute reviews per month as 0 for NA. Retains data. Probably exclude longitude and latitude, would be difficult to interpret, would need to stay continuous. Info is captured by neighborhood group. 
+
+#Are we trying to estimate two response variables? Popularity and price? Or is one a function of the other? Price may be a quadratic term influencing popularity.
+hist(data$price)
+summary(data$price)
+data %>% 
+  arrange(desc(price)) %>% 
+  select(price) #Probably should not exclude any very pricey ones, there are a good number of them
+
+data2 <- data %>% 
+  filter(is.na(reviews_per_month)) %>% 
+  select(c(neighbourhood_group, neighbourhood, price, minimum_nights, number_of_reviews, calculated_host_listings_count, availability_365))
+View(data2)
+
+summary(data$reviews_per_month)
+summary(data$number_of_reviews)
+
+data3 <- data %>% 
+  arrange(neighbourhood_group, neighbourhood) %>% 
+  filter(neighbourhood == "Riverdale")
+View(data3)
+
+data %>% 
+  group_by(neighbourhood_group) %>% 
+  summarise(avg_price = mean(price))
+
+data %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  summarise(avg_price = mean(price))
+
+data %>% 
+  filter(!is.na(reviews_per_month)) %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  summarise(avg_reviews_per_month = mean(reviews_per_month))
+
+data %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  count() %>% 
+  arrange (n)
+
+data %>% 
+  arrange(desc(price)) %>% 
+  slice(1:2445) %>% 
+  select(price)
+
+.05*dim(data)[1]
+summary(data$price) #how to construct a prior covariance that captures 95% of data when it is so skewed?
+
+data4 <- data %>% 
+  filter(!is.na(reviews_per_month))
+summary(data4$price)
+
+data %>% 
+  filter(number_of_reviews == 0) %>% 
+  count()
+
+data %>% 
+  filter(is.na(name))
+
+corrplot(data4)
+```
+
