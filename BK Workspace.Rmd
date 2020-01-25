@@ -9,6 +9,8 @@ require(dplyr)
 require(corrgram)
 require(corrplot)
 require(lubridate)
+require(quanteda)
+require(stringr)
 ```
 
 Normalized Reviews per Month
@@ -21,20 +23,41 @@ data <- data %>%
   mutate(last_review = ymd(last_review)) %>% 
   mutate(months_inactive = round(as.numeric(ymd("2019-07-08") - last_review)/30.42)) %>% 
   mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
-  mutate(nrml_avg_reviews = number_of_reviews/months_active)
+  mutate(nrml_avg_reviews = case_when(
+    reviews_per_month>0 ~ number_of_reviews/months_active,
+    is.na(reviews_per_month) ~ 0))
+  
 
 data %>% 
   select(last_review, reviews_per_month, nrml_avg_reviews)
+```
 
+
+
+TEXT ANALYSIS SCRATCH WORK
+```{r}
+#Length of name (in characters)
+# str_length(data$name)
+# str_detect(data$name, "[*!]")
+# str_detect(data$name, "^[:upper:]+$")
+
+
+#str_count(data$name, "[:upper:]")/str_length(data$name)
+
+corpus_data <- corpus(data$name)
+tokens_data <- tokens(corpus_data, remove_punct = TRUE)
+tokens_data_pad <- tokens_remove(tokens_data, pattern = stopwords('en'))
+head(tokens_data_pad)
+
+tokens_dfm<- dfm(tokens_data_pad)
+topfeatures(tokens_dfm, 20)
+textstat_frequency(tokens_dfm)
 ```
 
 
 
 
-
-
-
-SCRATCH WORK
+EDA SCRATCH WORK
 ```{r}
 data <- read_csv("AB_NYC_2019.csv")
 apply(data, 2, FUN = function(x){sum(is.na(x))}) #last review and reviews per month have tons of missing values. Last review would not be useful in any case, reviews per month is maybe slightly better than number of reviews, but not worth the missingness. POSSIBLE. Impute reviews per month as 0 for NA. Retains data. Probably exclude longitude and latitude, would be difficult to interpret, would need to stay continuous. Info is captured by neighborhood group. 
@@ -116,6 +139,9 @@ data <- data %>%
   mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
   mutate(nrml_avg_reviews = number_of_reviews/months_active) %>% 
   select(number_of_reviews, reviews_per_month, last_review, months_inactive, months_active, nrml_avg_reviews)
+
+data %>% 
+  filter(name %in% "room")
 
 
 ```
