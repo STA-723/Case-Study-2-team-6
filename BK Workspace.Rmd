@@ -8,9 +8,35 @@ knitr::opts_chunk$set(echo = TRUE)
 require(dplyr)
 require(corrgram)
 require(corrplot)
+require(lubridate)
 ```
 
+Normalized Reviews per Month
+
+I figured that reviews_per_month was a better metric than total reviews to measure popularity, but saw that reviews_per_month penalized listings that have been inactive for long periods of time. Run this chunk to see how "normalized average reviews" adjusts for that. Woot woot :)
 ```{r}
+data <- read_csv("AB_NYC_2019.csv")
+
+data <- data %>% 
+  mutate(last_review = ymd(last_review)) %>% 
+  mutate(months_inactive = round(as.numeric(ymd("2019-07-08") - last_review)/30.42)) %>% 
+  mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
+  mutate(nrml_avg_reviews = number_of_reviews/months_active)
+
+data %>% 
+  select(last_review, reviews_per_month, nrml_avg_reviews)
+
+```
+
+
+
+
+
+
+
+SCRATCH WORK
+```{r}
+data <- read_csv("AB_NYC_2019.csv")
 apply(data, 2, FUN = function(x){sum(is.na(x))}) #last review and reviews per month have tons of missing values. Last review would not be useful in any case, reviews per month is maybe slightly better than number of reviews, but not worth the missingness. POSSIBLE. Impute reviews per month as 0 for NA. Retains data. Probably exclude longitude and latitude, would be difficult to interpret, would need to stay continuous. Info is captured by neighborhood group. 
 
 #Are we trying to estimate two response variables? Popularity and price? Or is one a function of the other? Price may be a quadratic term influencing popularity.
@@ -71,5 +97,26 @@ data %>%
   filter(is.na(name))
 
 corrplot(data4)
+
+data %>% 
+  arrange(desc(minimum_nights)) %>% 
+  select(minimum_nights)
+
+data %>% 
+  filter(minimum_nights == 180) %>% 
+  select(price)
+
+data %>% 
+  arrange(desc(last_review)) %>% 
+  select(last_review)  #Last Review collected on 2019-07-08
+
+data <- data %>% 
+  mutate(last_review = ymd(last_review)) %>% 
+  mutate(months_inactive = round(as.numeric(ymd("2019-07-08") - last_review)/30.42)) %>% 
+  mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
+  mutate(nrml_avg_reviews = number_of_reviews/months_active) %>% 
+  select(number_of_reviews, reviews_per_month, last_review, months_inactive, months_active, nrml_avg_reviews)
+
+
 ```
 
