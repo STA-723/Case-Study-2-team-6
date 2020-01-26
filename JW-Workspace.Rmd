@@ -1,0 +1,262 @@
+---
+title: "JW-Workspace"
+author: "Justin Weltz"
+date: "1/23/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(ggplot2)
+```
+
+
+```{r}
+data <- read.csv("AB_NYC_2019.csv")
+summary(data)
+
+data %>% 
+  arrange(desc(price)) %>% 
+  select(price) 
+
+data %>% 
+  group_by(neighbourhood_group) %>% 
+  summarise(avg_price = mean(price))
+data %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  summarise(avg_price = mean(price))
+
+
+data %>% 
+  filter(!is.na(reviews_per_month)) %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  summarise(avg_reviews_per_month = mean(reviews_per_month))
+data %>% 
+  group_by(neighbourhood_group, neighbourhood) %>% 
+  count() %>% 
+  arrange (n)
+data %>% 
+  arrange(desc(price)) %>% 
+  slice(1:2445) %>% 
+  select(price)
+
+data %>% filter(price < 1000) %>% ggplot(aes(price,reviews_per_month, color = neighbourhood_group)) + geom_smooth()
+
+data %>% filter(price < 1000) %>% ggplot(aes(price,reviews_per_month, color = room_type )) + geom_smooth()
+
+data %>% filter(price < 1000) %>% ggplot(aes(price,number_of_reviews, color = neighbourhood_group)) + geom_smooth()
+
+data %>% filter(price < 1000) %>% ggplot(aes(price,number_of_reviews, color = room_type)) + geom_smooth()
+
+data %>% filter(number_of_reviews < 100 & number_of_reviews>0) %>% ggplot(aes(number_of_reviews)) + geom_histogram()
+
+data %>% filter(availability_365 < 10) %>% ggplot(aes(availability_365)) + geom_histogram()
+
+data %>% filter(availability_365 == 0 & number_of_reviews != 0)
+
+data %>% filter(availability_365 == 0)
+
+data %>% filter(number_of_reviews != 0)
+
+data %>% filter(number_of_reviews == 0) %>% filter(price < 500) %>% ggplot(aes(price)) + geom_histogram()
+
+data %>% filter(number_of_reviews != 0) %>%  filter(price < 500) %>% ggplot(aes(price)) + geom_histogram()
+
+data %>% filter(number_of_reviews == 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(number_of_reviews > 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(availability_365 == 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(availability_365 > 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(availability_365 == 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(availability_365 > 0) %>% ggplot(aes(neighbourhood_group)) + geom_bar()
+
+data %>% filter(availability_365 == 0) %>% ggplot(aes(room_type)) + geom_bar()
+
+data %>% filter(availability_365 > 0) %>% ggplot(aes(room_type)) + geom_bar()
+
+
+data %>% filter(number_of_reviews == 0) %>% ggplot(aes(room_type)) + geom_bar()
+
+data %>% filter(number_of_reviews > 0) %>% ggplot(aes(room_type)) + geom_bar()
+
+```
+
+
+Geographic Data
+
+```{r}
+#install.packages("sf")
+#install.packages("mapview")
+library(sf)
+library(mapview)
+#data
+#locations_sf <- st_as_sf(data,c("latitude", "longitude"), crs = 4326)
+
+
+data %>% ggplot(aes(x=latitude, y=longitude, size= number_of_reviews, color = neighbourhood_group)) + geom_point
+
+data %>% filter(neighbourhood_group == "Queens") %>% ggplot(aes(x=latitude, y=longitude, size= number_of_reviews, )) + geom_point()
+
+sum(data$minimum_nights>365)
+```
+
+Clustering:
+
+```{r}
+#install.packages("StatMatch")
+#install.packages("cluster")
+require(StatMatch)
+require(cluster)
+data_clust <- data %>% select(latitude, longitude, price, neighbourhood_group, neighbourhood)
+data_clust <- data_clust %>% mutate(neighbourhood_group = as.factor(neighbourhood_group)) %>% mutate(neighbourhood = as.factor(neighbourhood)) %>% filter(price < 200) %>% filter(neighbourhood_group == "Manhattan")
+
+#data_clust
+
+
+gower_dist <- daisy(data_clust, metric = "gower")
+summary(gower_dist)
+
+gower_mat <- as.matrix(gower_dist)
+
+pam_fit <- pam(gower_dist, diss = TRUE, k=10)
+
+pam_fit$clustering
+
+clustered <- cbind(data_clust, pam_fit$clustering)
+
+clustered$`pam_fit$clustering`<- as.factor(clustered$`pam_fit$clustering`)
+
+clustered %>% ggplot(aes(latitude, longitude, color = `pam_fit$clustering`)) + geom_point()
+```
+
+
+```{r}
+#install.packages("spdep")
+require(sp)
+require(spdep)
+points <- SpatialPoints(cbind(data_clust$latitude, data_clust$longitude))
+Sy8_nb <- knearneigh(points, longlat = T, k = 1)
+
+Sy8_nb <- knn2nb(Sy8_nb)
+
+Sy8_nb
+
+dsts <- unlist(nbdists(Sy8_nb, points))
+min <- max(dsts)
+
+
+dup <- which(duplicated(data_clust %>% select(longitude, latitude)))
+
+data_clust <- data_clust[-dup, ]
+
+latlon <- data_clust %>% select(longitude, latitude)
+
+euclidean_dist <- daisy(latlon, metric = "euclidean")
+
+euclidean_mat <- as.matrix(euclidean_dist)
+dim(as.matrix(euclidean_dist))
+
+
+adjacency <- matrix(0, 14898, 14898)
+for (i in 1:14898){
+  for (j in 1:14898){
+    if (euclidean_mat[i,j] < 1.25*min ){
+      adjacency[i,j] = 1
+    }
+  }
+}
+
+```
+
+```{r}
+
+#install.packages("CARBayes")
+require(CARBayes)
+
+new_data_clust <- data %>% dplyr::select(latitude, longitude, price, neighbourhood_group, neighbourhood, number_of_reviews) %>% mutate(neighbourhood_group = as.factor(neighbourhood_group)) %>% mutate(neighbourhood = as.factor(neighbourhood)) %>% filter(price < 200) %>% filter(neighbourhood_group == "Manhattan")
+
+#View(new_data_clust %>% group_by(neighbourhood) %>% summarise(n = n()))
+
+dup <- which(duplicated(new_data_clust %>% dplyr::select(longitude, latitude)))
+
+new_data_clust <- new_data_clust[-dup, ]
+
+summary(lm(number_of_reviews ~ neighbourhood, data = new_data_clust))
+
+mod<- lm(number_of_reviews ~ neighbourhood, data = new_data_clust)
+
+model_data <- model.matrix(mod)
+
+model_data <- cbind(new_data_clust$number_of_reviews, model_data)
+
+model_data <- data.frame(model_data)
+
+#View(model_data[,-2])
+
+model <- S.CARleroux(data = model_data[,-2], formula = V1 ~ ., family="gaussian", W= adjacency, burnin=100, n.sample=3000, thin=20)
+
+
+```
+
+
+
+Longitude and Latitude - clustering - nyc package? - latent SES variable
+
+calcium process
+
+conditionally autoregressive models, markov random field 
+
+
+
+
+
+Textual Analysis
+
+
+
+
+Zeros - Reviews - approaches
+
+
+covariates
+
+piece-wise linear
+
+change-point 
+
+
+
+Shrinkage - extreme differences in observations - defining prior
+
+Approaches to reviews -positive or negative - threshold
+
+
+
+
+profitable? Price data?
+
+
+
+
+Name data - classify somehow
+
+
+
+Last Review data - time series distribution
+
+Outlier analysis using BMA
+
+Seperate analysis for availiability 
+
+House-type
+
+
+
+Down-weight non-active because not reflective of current trends
+
+censoring
