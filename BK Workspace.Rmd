@@ -11,6 +11,12 @@ require(corrplot)
 require(lubridate)
 require(quanteda)
 require(stringr)
+require(readr)
+require(lme4)
+require(arm)
+
+
+remove.packages("arm")
 ```
 
 Normalized Reviews per Month
@@ -23,13 +29,21 @@ data <- data %>%
   mutate(last_review = ymd(last_review)) %>% 
   mutate(months_inactive = round(as.numeric(ymd("2019-07-08") - last_review)/30.42)) %>% 
   mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
+  mutate(months_active = case_when(
+    months_active >=1 ~ months_active, 
+    months_active <1 ~ 1
+  )) %>% 
   mutate(nrml_avg_reviews = case_when(
     reviews_per_month>0 ~ number_of_reviews/months_active,
     is.na(reviews_per_month) ~ 0))
-  
+
 
 data %>% 
-  select(last_review, reviews_per_month, nrml_avg_reviews)
+  filter(number_of_reviews == 30) %>% 
+  arrange(last_review, months_active) %>% 
+  select(number_of_reviews, last_review, months_active, reviews_per_month, nrml_avg_reviews)
+
+
 ```
 
 
@@ -143,6 +157,17 @@ data <- data %>%
 data %>% 
   filter(name %in% "room")
 
+queens <- data %>% 
+  filter(neighbourhood_group == "Queens")
 
+model <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood), data = data)
+
+display(model)
+plot(model)
+coef(model)
+
+data %>% 
+  group_by(neighbourhood_group) %>% 
+  count(is.na(reviews_per_month))
 ```
 
