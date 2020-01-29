@@ -99,8 +99,12 @@ data = data %>% mutate(gender=
                           if (length(i) > 0){
                             return(genders_data[i[[1]],2])
                           }
-                          return("Unkown")
+                          return(3)
                         }))
+
+data = data %>% mutate(gender=case_when(gender==1 ~ "Female",
+                                        gender==2 ~ "Male",
+                                        TRUE ~ "Unknown"))
 ```
 
 
@@ -127,11 +131,13 @@ tidy_text_adj <- tidy_text %>% #Identify words with frequency >= 10
 adj_matrix <- matrix(NA, nrow = dim(data)[1], ncol = length(tidy_text_adj))
 
 for(i in 1:length(tidy_text_adj)){
-  adj_matrix[,i] <- str_detect(data_text_analysis, tidy_text_adj[i])
+  adj_matrix[,i] <- str_detect(text, tidy_text_adj[i])
 }
 
 colnames(adj_matrix) <- tidy_text_adj
+```
 
+```{r}
 dat = cbind(data, adj_matrix)
 ```
 
