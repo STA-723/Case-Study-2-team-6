@@ -14,6 +14,7 @@ library(ggmap)
 library(httr)
 library(lubridate)
 source("prettyplot.R")
+library(gender) #install.packages("genderdata", repos="http://packages.ropensci.org")
 ```
 
 
@@ -24,7 +25,7 @@ data <- read.csv("AB_NYC_2019.csv")
 
 data <- data %>% 
   mutate(last_review = ymd(last_review)) %>% 
-  mutate(months_inactive = round(as.numeric(ymd("2019-07-08") - last_review)/30.42)) %>% 
+  mutate(months_inactive = as.numeric(ymd("2019-07-08") - last_review)/30.42) %>% 
   mutate(months_active = (number_of_reviews - reviews_per_month*months_inactive)/reviews_per_month) %>% 
   mutate(months_active = case_when(
     months_active >=1 ~ months_active, 
@@ -113,11 +114,75 @@ dists = lambd(dat$longitude, dat$latitude)
 
 ```{r}
 dists = readRDS("dists_to_subway.rds")
-dat = data %>% mutate(dists = dists)
+host_names = data[,"host_name", drop=F] %>% mutate(name = as.character(host_name))
+genders = gender(unique(host_names$name))
+genders = data.frame(name = genders$name, 
+                gender = case_when(genders$proportion_female > 0.90 ~ "Female",
+                    genders$proportion_female > 0.10 ~ "Unknown",
+                    TRUE ~ "Male")
+)
+
+dat = data %>% mutate(genders=
+                        sapply(as.character(data$host_name), function(x) {
+                          i = which(genders$name == x)
+                          if (length(i) > 0){
+                            return(genders[i[1],]$gender)
+                          }
+                          return("Unkown")
+                        }))
 ```
 
 ```{r}
-plot(log(dat$dists), log(dat$price))
+dat = dat %>% mutate(dists=dists)
+```
+
+```{r}
+d = dat %>% filter(room_type == "Private room", price < 500)
+plot(d[,c("dists", "price", "nrml_avg_reviews", "availability_365")], axes=F, col=factor(d$genders))
+```
+
+
+
+
+
+
+```{r}
+dat %>% 
+  filter(price < 500) %>% 
+  ggplot(aes(x=price, color=genders)) + 
+  geom_density(bw=10) +
+  facet_wrap(vars(room_type))
+```
+
+
+
+
+```{r}
+dat %>% 
+  filter(price < 500) %>% 
+  ggplot(aes(x=price, color=room_type)) + 
+  geom_density(bw=2)
+```
+
+
+
+```{r}
+dat %>% filter(price==300 | price==299) %>% select(price, nrml_avg_reviews) %>% group_by(price) %>% summarize(median(nrml_avg_reviews))
+```
+
+```{r}
+dat %>% filter(price==200 | price==199) %>% select(price, nrml_avg_reviews) %>% group_by(price) %>% summarize(median(nrml_avg_reviews))
+```
+
+
+
+
+
+
+```{r}
+d = dat %>% filter(price < 500, room_type == "Private room", minimum_nights==1)
+
+plot(log(d$dists), log(d$nrml_avg_reviews*d$price), col=factor(d$genders))
 ```
 
 
