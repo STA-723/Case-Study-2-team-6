@@ -1,0 +1,157 @@
+---
+title: "Data cleaning and transformations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+library(geosphere)
+library(tidytext)
+library(textdata)
+```
+
+
+## Raw data
+
+Let's load the raw data.
+
+```{r}
+raw_data = read.csv("AB_NYC_2019.csv")
+```
+
+We focus our analysis on listings for short-term stays, defined as with 6 day or less minimum stay, and only consider listings with at least one review. We also remove listings with a price higher than 1000$.
+
+```{r}
+data = raw_data %>% 
+  filter(minimum_nights < 7, 
+         number_of_reviews > 0, 
+         price <= 1000)
+```
+
+## Reviews per month
+
+We compute the number of months a listing has been inactive as the number of months between the listing's last review and the end of the time frame under consideration by the data ("2019-07-08"). This is then used to deduce the number of months the listing has been active, and to define the normalized average number of reviews per month as 
+
+```{r}
+data = data %>% mutate(last_review = ymd(last_review),
+                       months_inactive = as.numeric(ymd("2019-07-08") - last_review)/30.42,
+                       months_active = (number_of_reviews - reviews_per_month * months_inactive) / 
+                         reviews_per_month) %>% 
+  mutate(months_active = case_when(
+    months_active >= 1 ~ round(months_active), 
+    months_active < 1 ~ 1
+  )) %>% 
+  mutate(nrml_avg_reviews = case_when(
+    reviews_per_month > 0 ~ number_of_reviews/months_active,
+    is.na(reviews_per_month) ~ 0
+    ))
+```
+
+## Distance to closest subway station
+
+We also compute the distance (in meters) from a listing to the closest subway station using Subway entrance data from NYC's Open Data project (https://data.cityofnewyork.us/Transportation/Subway-Entrances/drex-xx56).
+
+```{r}
+subways = read.csv("subways.csv")
+subways = subways[,"the_geom"] %>% 
+  str_remove_all("POINT ") %>% 
+  str_remove_all("[\\(\\)]") %>% 
+  str_split(" ")
+
+subways = sapply(subways, function(x) {
+  c(as.numeric(x[[1]]), as.numeric(x[[2]]))
+})
+
+lambd <- Vectorize(function(long, lat) {
+  min(apply(subways, 2, function(s) {
+    #distHaversine(c(long, lat), c(s[1], s[2]))
+    x = lat - s[2]
+    y = (long - s[1]) * cos((lat + s[2])*0.00872664626)  
+    111.319 * sqrt(x*x + y*y) * 1000
+  }))
+})
+
+dists = lambd(data$longitude, data$latitude)
+
+data = data %>% mutate(dist_to_subway = dists)
+```
+
+
+## Gender
+
+```{r}
+host_names = data[,"host_name", drop=F] %>% 
+  mutate(name = as.character(host_name))
+
+genders_data = gender(unique(host_names$name))
+genders_data = data.frame(name = genders_data$name, 
+                gender = case_when(genders_data$proportion_female > 0.90 ~ "Female",
+                    genders_data$proportion_female > 0.10 ~ "Unknown",
+                    TRUE ~ "Male")
+)
+
+data = data %>% mutate(gender=
+                        sapply(as.character(data$host_name), function(x) {
+                          i = which(genders_data$name == x)
+                          if (length(i) > 0){
+                            return(genders_data[i[[1]],2])
+                          }
+                          return(3)
+                        }))
+
+data = data %>% mutate(gender=case_when(gender==1 ~ "Female",
+                                        gender==2 ~ "Male",
+                                        TRUE ~ "Unknown"))
+```
+
+
+## Adjectives matrix
+
+```{r}
+data("stop_words")
+
+text <- tolower(data$name)
+text_df <- tibble(line = 1: dim(data)[1], text=text)
+
+tidy_text <- text_df %>%  #Remove Stop Words
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+
+tidy_text_adj <- tidy_text %>% #Identify words with frequency >= 10
+  left_join(parts_of_speech) %>%
+  filter(pos %in% c("Adjective","Adverb")) %>%
+  count(word, sort= TRUE) %>%
+  filter(n >=10) %>%
+  pull(word)
+
+#Adjective matrix
+adj_matrix <- matrix(NA, nrow = dim(data)[1], ncol = length(tidy_text_adj))
+
+for(i in 1:length(tidy_text_adj)){
+  adj_matrix[,i] <- str_detect(text, tidy_text_adj[i])
+}
+
+colnames(adj_matrix) <- tidy_text_adj
+```
+
+```{r}
+dat = cbind(data, adj_matrix)
+```
+
+## Saving the results
+
+```{r}
+saveRDS(dat, "data_transformed.rds")
+```
+
+
+
+
+
+
+
+
+
