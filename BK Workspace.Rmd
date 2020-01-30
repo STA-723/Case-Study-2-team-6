@@ -70,65 +70,35 @@ textstat_frequency(tokens_dfm)
 
 
 
-#Tidy Text
-data_text_analyis <- data %>% 
-  mutate(name = str_to_lower(name, locale = "en"))
-data_text_analyis$name
-
+#ADJECTIVES MATRIX
+library(tidytext)
+library(textdata)
 
 data("stop_words")
+
+data_text_analysis <- tolower(data$name)
 text <- data_text_analyis$name
 text_df <- tibble(line = 1: dim(data)[1], text=text)
 
-tidy_text <- text_df %>% 
+tidy_text <- text_df %>%  #Remove Stop Words
   unnest_tokens(word, text) %>% 
   anti_join(stop_words) 
 
-tidy_text_adj <- tidy_text %>% 
+tidy_text_adj <- tidy_text %>% #Identify words with frequency >= 10
   left_join(parts_of_speech) %>%
-  filter(pos %in% c("Adjective","Adverb")) %>%
-  pull(word) %>%
-  unique
+  filter(pos %in% c("Adjective","Adverb")) %>% 
+  count(word, sort= TRUE) %>% 
+  filter(n >=10) %>% 
+  pull(word)
 
-tidy_text %>% 
-  count(word, sort = TRUE)
+#Adjective matrix
+adj_matrix <- matrix(NA, nrow = dim(data)[1], ncol = 226)
 
-tidy_text %>%
-  count(word, sort = TRUE) %>%
-  filter(n > 2000) %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(word, n)) +
-  geom_col() +
-  xlab(NULL) +
-  coord_flip()
-
-get_sentiments("afinn")
-bing <- get_sentiments("bing")
-
-
-#CREATING INDICATORS
-
-pattern <- paste(tidy_text_adj, collapse = "|")
-
-dt <- data.frame(
-  ItemNames = c("Superb apple", "Superb Pear", "Superb car"), 
-  Cost = c(1, 2, 3),
-  stringsAsFactors = FALSE
-)
-for(i in 1:length(tidy_text_adj)){
-index <- str_detect(tidy_text_adj[i], regex(pattern))
-data[index,]$name
+for(i in 1:226){
+  adj_matrix[,i] <- str_detect(data_text_analyis$name, tidy_text_adj[i])
 }
-adjectives.matrix <- matrix(NA, nrow = dim(data)[1], ncol = 788)
 
-for(i in 1:788){
-  adjectives.matrix[,i] <- str_detect(data_text_analyis$name, tidy_text_adj[i])
-}
-View(adjectives.matrix)
-View(data_text_analyis)
-
-colnames(adjectives.matrix) <- tidy_text_adj
-View(adjectives.matrix)
+colnames(adj_matrix) <- tidy_text_adj
 
 mega_data <- cbind(data, adjectives.matrix)
 
@@ -149,7 +119,7 @@ library(car)
 fit <- brm(nrml_avg_reviews~ price+room_type + (1|neighbourhood) + (1|neighbourhood_group), data = data, family = "gaussian")
 
 
-model <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood) + price + room_type, data = data,  REML = FALSE)
+model <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood) +price + room_type, data = data,  REML = FALSE)
 summary(model)
 Anova(model)
 plot(model)
