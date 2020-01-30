@@ -45,6 +45,9 @@ TODO: OB
 TODO: OB
 
 ## 2.3 Text analysis
+```{r}
+
+```
 
 ## 2.4 Additional data
 
@@ -57,6 +60,17 @@ TODO: OB
 - CAR model
 
 - Hierarchical model
+```{r}
+require(car)
+model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway, data = data_transformed)
+summary(model_heir)
+Anova(model_heir)
+coef(model_heir)
+
+data_transformed %>% 
+  arrange(desc(price)) %>% 
+  select(price)
+```
 
 ## 2.6 Global hierarchical model
 
