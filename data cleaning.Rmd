@@ -148,6 +148,65 @@ saveRDS(dat, "data_transformed.rds")
 ```
 
 
+## Experimentation
+
+```{r}
+dat = readRDS("data_transformed.rds")
+
+dat = dat %>% mutate(worth = price * nrml_avg_reviews)
+```
+
+```{r}
+whole = seq(25, 1000, by=25)
+less = whole + 1
+
+dat %>% filter(price %in% whole) %>% summarise(n(), mean(nrml_avg_reviews))
+dat %>% filter((price %in% less)) %>% summarise(n(), mean(nrml_avg_reviews))
+```
+
+
+```{r}
+library(randomForest)
+
+rf = randomForest(worth ~ minimum_nights + 
+               availability_365 +
+               latitude + 
+               longitude +
+               dist_to_subway +
+                 factor(dat$room_type), data=dat)
+```
+
+```{r}
+varImpPlot(rf)
+```
+
+
+
+```{r}
+devtools::install_github("associatedpress/aptheme")
+```
+
+```{r}
+library(aptheme)
+library(tidyverse)
+
+library(ggplot2)
+library(aptheme)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
