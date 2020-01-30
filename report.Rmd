@@ -32,17 +32,23 @@ source("prettyplot.R")
 
 # 1. Introduction
 
+TODO: OB
+
 ## 1.1 Dataset and its limitations
+
+TODO: OB
 
 # 2. Materials and methods
 
 ## 2.2 Data cleaning and transformation
 
-- Other observations
+TODO: OB
 
 ## 2.3 Text analysis
 
 ## 2.4 Additional data
+
+TODO: OB
 
 ## 2.5 CAR and hierarchical model for neighborhood effect controlling for distance
 
@@ -59,11 +65,14 @@ source("prettyplot.R")
 
 - Graphical display of the results
 
-
+- OB can help with the graphical display
 
 
 # 4. Discussion
 
 
 # Appendix
+
+## EDA
+TODO: OB
 
