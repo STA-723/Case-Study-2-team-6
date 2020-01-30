@@ -72,7 +72,7 @@ data_transformed %>%
   select(price)
 ```
 
-## 2.6 Global hierarchical model
+## 2.6 Global hierarchical model to compare effects of different features
 
 - Keyword importance
     - Take the 5 most important ones to feed in the RF.
