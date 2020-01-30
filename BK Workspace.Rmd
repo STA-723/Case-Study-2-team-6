@@ -71,8 +71,13 @@ textstat_frequency(tokens_dfm)
 
 
 #Tidy Text
+data_text_analyis <- data %>% 
+  mutate(name = str_to_lower(name, locale = "en"))
+data_text_analyis$name
+
+
 data("stop_words")
-text <- data$name
+text <- data_text_analyis$name
 text_df <- tibble(line = 1: dim(data)[1], text=text)
 
 tidy_text <- text_df %>% 
@@ -114,14 +119,23 @@ for(i in 1:length(tidy_text_adj)){
 index <- str_detect(tidy_text_adj[i], regex(pattern))
 data[index,]$name
 }
+adjectives.matrix <- matrix(NA, nrow = dim(data)[1], ncol = 788)
 
-index <- str_detect(tidy_text_adj[1], regex(pattern))
-data[index,]$name
+for(i in 1:788){
+  adjectives.matrix[,i] <- str_detect(data_text_analyis$name, tidy_text_adj[i])
+}
+View(adjectives.matrix)
+View(data_text_analyis)
 
-tidy_text_adj[1]
-str_detect(data$name, "Clean")
+colnames(adjectives.matrix) <- tidy_text_adj
+View(adjectives.matrix)
 
-View(data)
+mega_data <- cbind(data, adjectives.matrix)
+
+View(mega_data)
+dim(mega_data)
+model <- lm(data=mega_data[,19:807], nrml_avg_reviews ~ .)
+summary(model)
 ```
 
 
