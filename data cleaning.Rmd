@@ -218,7 +218,7 @@ data_nopricefilter = data_nopricefilter %>% mutate(last_review = ymd(last_review
 
 data_nopricefilter %>% 
   arrange(desc(price)) %>% 
-  select(name, price, neighbourhood_group)
+  select(name, price, neighbourhood_group, number_of_reviews, nrml_avg_reviews)
 ```
 
 
