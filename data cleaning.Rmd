@@ -11,6 +11,7 @@ library(stringr)
 library(geosphere)
 library(tidytext)
 library(textdata)
+library(gender)
 ```
 
 
@@ -28,7 +29,7 @@ We focus our analysis on listings for short-term stays, defined as with 6 day or
 data = raw_data %>% 
   filter(minimum_nights < 7, 
          number_of_reviews > 0, 
-         price <= 1000)
+         price <= 5000)
 ```
 
 ## Reviews per month

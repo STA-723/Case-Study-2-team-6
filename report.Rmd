@@ -32,11 +32,10 @@ source("prettyplot.R")
 
 # 1. Introduction
 
-TODO: OB
 
 ## 1.1 Dataset and its limitations
 
-TODO: OB
+
 
 # 2. Materials and methods
 
