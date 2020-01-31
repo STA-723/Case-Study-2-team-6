@@ -198,7 +198,29 @@ library(aptheme)
 ```
 
 
+BK looking at stuff
+```{r}
+data_nopricefilter = raw_data %>% 
+  filter(minimum_nights < 7, 
+         number_of_reviews > 0)
 
+data_nopricefilter = data_nopricefilter %>% mutate(last_review = ymd(last_review),
+                       months_inactive = as.numeric(ymd("2019-07-08") - last_review)/30.42,
+                       months_active = (number_of_reviews - reviews_per_month * months_inactive) / 
+                         reviews_per_month) %>% 
+  mutate(months_active = case_when(
+    months_active >= 1 ~ round(months_active), 
+    months_active < 1 ~ 1
+  )) %>% 
+  mutate(nrml_avg_reviews = case_when(
+    reviews_per_month > 0 ~ number_of_reviews/months_active,
+    is.na(reviews_per_month) ~ 0
+    ))
+
+data_nopricefilter %>% 
+  arrange(desc(price)) %>% 
+  select(name, price, neighbourhood_group, number_of_reviews, nrml_avg_reviews)
+```
 
 
 
