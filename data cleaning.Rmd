@@ -149,7 +149,6 @@ saveRDS(dat, "data_transformed.rds")
 ```
 
 
-
 ## Experimentation
 
 ```{r}
@@ -159,8 +158,8 @@ dat = dat %>% mutate(worth = price * nrml_avg_reviews)
 ```
 
 ```{r}
-whole = seq(25, 1000, by=25)
-less = whole + 1
+whole = seq(100, 1000, by=100)
+less = whole - 1
 
 dat %>% filter(price %in% whole) %>% summarise(n(), mean(nrml_avg_reviews))
 dat %>% filter((price %in% less)) %>% summarise(n(), mean(nrml_avg_reviews))
