@@ -44,9 +44,7 @@ source("prettyplot.R")
 TODO: OB
 
 ## 2.3 Text analysis
-```{r}
 
-```
 
 ## 2.4 Additional data
 
@@ -66,9 +64,6 @@ summary(model_heir)
 Anova(model_heir)
 coef(model_heir)
 
-data_transformed %>% 
-  arrange(desc(price)) %>% 
-  select(price)
 ```
 
 ## 2.6 Global hierarchical model to compare effects of different features

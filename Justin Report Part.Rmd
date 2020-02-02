@@ -1,0 +1,55 @@
+---
+title: "Justin Report Part"
+author: "Justin Weltz"
+date: "2/2/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(ggplot2)
+```
+
+In order to advise a new Airbnb owner on the best neighborhood to set up a property, we have to be careful to separate the neighborhood effect on popularity from auto-correlation over the spatial dimension. For example, 
+
+Priors:
+
+$$\phi_k| \phi_{-k}, W, \tau^2, \rho \sim N(\frac{\rho\sum_{i=1}^k w_{ki}\phi_i}{\rho\sum_{i=1}^k w_{ki} + 1-\rho}, \frac{\tau^2}{\rho\sum_{i=1}^k w_{ki} + 1-\rho})$$
+$$\tau^2 \sim Inverse-Gamma(a,b)$$
+$$\rho \sim Uniform(0,1)$$
+
+This induces neighbor spatial correlation:
+
+$$COR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) = \frac{\rho w_{kj}}{\sqrt{(\rho \sum_{i=1}^k w_{ki} + 1 - \rho)(\rho \sum_{i=1}^k w_{ki} + 1 - \rho }}$$
+
+```{r, warning=FALSE, message=FALSE, echo= FALSE}
+data <- readRDS("data_transformed.rds")
+data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
+
+data %>% filter(neighbourhood == "Chinatown") %>% ggplot(aes(x  = latitude, y = longitude)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Chinatown Density")
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo= FALSE}
+
+data_r <- rbind(c("rho", 0.9072, "Bronx"), c("rho", 0.9277, "Manhattan"),  c("rho", 0.7474, "Queens"), c("rho", 0.7389, "Brooklyn"))
+data_r <- data.frame(data_r)
+names(data_r) <- c("Variables", "Value", "Borough")
+
+data <- readRDS("Coefficient_Data.rds")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Bronx Coefficients")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients")
+
+data %>% filter(Variables == "price") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Price Coefficients")
+
+data_r  %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Rho Coefficients")
+
+data %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Distance To Subw Coefficients")
+```
