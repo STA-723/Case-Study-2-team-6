@@ -106,7 +106,7 @@ model_1_bronx <- S.CARleroux(data = model_data[-2], formula = V1 ~ ., family="ga
 
 model_2_bronx <- S.glm(data =  model_data[-2], formula = V1 ~ ., family="gaussian", burnin=1000, n.sample=200000, thin=10)
 
-#summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
+summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
 
 
 print(model_1_bronx)
@@ -222,6 +222,7 @@ Queens Analysis
 ```{r}
 set.seed(3)
 data_queens <- data %>% filter(neighbourhood_group == "Queens") %>% dplyr::select(nrml_avg_reviews, price, neighbourhood, dist_to_subway, longitude, latitude) %>% sample_n(1000)
+data_queens %>% group_by(neighbourhood) %>% summarise(mean = mean(nrml_avg_reviews))
 ```
 
 Calculate Max Distance to One Neighbor and Create Adjacency Matrix
