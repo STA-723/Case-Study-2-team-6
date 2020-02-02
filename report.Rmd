@@ -18,13 +18,8 @@ header-includes: \usepackage{hyperref}
 linestretch: 1
 link-citations: yes
 linkcolor: blue
-<<<<<<< HEAD
 fontfamily: mathpazo
 fontsize: 10pt
-=======
-bibliography: biblio.bib
-abstract: abstract
->>>>>>> 504523eba3ddcce9a23613f8469be5f961df0b36
 ---
 
 ```{r setup, include=FALSE}
