@@ -44,53 +44,6 @@ source("prettyplot.R")
 TODO: OB
 
 ## 2.3 Text analysis
-We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
-```{r}
-data_transformed %>% 
-  filter(id == c(5447434, 30232758)) %>% 
-  select(id, number_of_reviews, last_review, reviews_per_month)
-```
-
-$$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
-$$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
-$$\text{Months Active} = \min \left\{\frac{\text{No. of Reviews - (Reviews per Month)(Months Inactive)}}{\text{Reviews per Month}}, 1\right\}$$
-$$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
-
-Through normalization, we recover the popularity of each listing during the time it was active. 
-```{r}
-data_transformed %>% 
-  filter(id == c(5447434, 30232758)) %>% 
-  select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
-```
-
-
-
-```{r}
-
-text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
-
-pvalues <- data.frame(summary(text_model)$coefficients[,4])
-words <- names(coef(text_model))
-toplist <- as.data.frame(cbind(words, pvalues))
-colnames(toplist) <- c("words", "pvalues")
-
-toplist %>% 
-  arrange(pvalues) %>% 
-  filter(pvalues<0.05/219)
-```
-
-TO SHOW NO STAYS AT HIGH PRICES
-```{r}
-raw_data <- read.csv("AB_NYC_2019.csv")
-  
-raw_data %>%
-  mutate(quantile = ntile(price, 10)) %>%
-  mutate(no_stay = number_of_reviews==0) %>% 
-  group_by(quantile) %>%
-  count(no_stay==1)%>% 
-  mutate(prop = prop.table(n))%>% 
-  ggplot(aes(x = quantile, y = prop, fill = `no_stay == 1`)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0))
-```
 
 
 ## 2.4 Additional data
