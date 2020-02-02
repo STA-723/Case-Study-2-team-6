@@ -22,6 +22,8 @@ require(jtools)
 ### Goal:
 
 ## Data cleaning and transformations
+Listings with "minimum stay" greater than 30 often had extremely high prices, suggesting some were monthly prices. To avoid these innacuracies, we limit analysis to listings with "minimum stay" less than 7. 
+
 Listings with high prices have no reviews at disporportionately high rates. Therefore, we remove listings with no reviews from our analysis.
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 raw_data <- read.csv("AB_NYC_2019.csv")
@@ -40,16 +42,18 @@ raw_data %>%
 We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 data_transformed <- readRDS("data_transformed.rds")
-data_transformed %>% 
+before_transform <- data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
   select(id, number_of_reviews, last_review, reviews_per_month)
 ```
 
 ## Normalized Average Reviews
+<font size ="1">
 $$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
 $$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
 $$\text{Months Active} = \min \left\{\frac{\text{No. of Reviews - (Reviews per Month)(Months Inactive)}}{\text{Reviews per Month}}, 1\right\}$$
 $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
+</font>
 
 ## Normalized Average Reviews
 Through normalization, we recover the popularity of each listing during the time it was active. 
@@ -60,6 +64,7 @@ data_transformed %>%
 ```
 
 ## Text Analysis
+We identified all adjectives that occured in 10 or more listings (219 words). We then ran a linear regression of average reviews against these words, and identified all words with p-values below the Bonferonni adjustment of $\frac{0.05}{218}$. This left 18 words for further analysis.
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
 
@@ -68,19 +73,19 @@ words <- names(coef(text_model))
 toplist <- as.data.frame(cbind(words, pvalues))
 colnames(toplist) <- c("words", "pvalues")
 
-#toplist %>% 
-  arrange(pvalues) %>% 
-  filter(pvalues<0.05/219)
+# toplist %>% 
+#   arrange(pvalues) %>% 
+#   filter(pvalues<0.05/219)
 
 ```
 
 ## Heirarchical Model
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
-#summary(model_heir)
-#Anova(model_heir)
-#coef(model_heir)
+model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +gender+ private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
+#summary(model_heir) #You can see the coefficents here
+#Anova(model_heir) #You can see the p-values here
+#coef(model_heir) #This is not that useful
 
 #plot_summs(model_heir)
 
