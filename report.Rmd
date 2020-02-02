@@ -18,7 +18,6 @@ link-citations: yes
 linkcolor: blue
 fontfamily: mathpazo
 fontsize: 10pt
-bibliography: biblio.bib
 ---
 
 ```{r setup, include=FALSE}
