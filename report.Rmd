@@ -12,8 +12,6 @@ output:
     template: svm-latex-ms.tex
   html_document:
     df_print: paged
-fontfamily: mathpazo
-fontsize: 10pt
 header-includes: \usepackage{hyperref}
 linestretch: 1
 link-citations: yes
