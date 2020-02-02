@@ -4,6 +4,18 @@ author: "Olivier Binette, Justin Weltz, and Brian Kundinger"
 output: 
   beamer_presentation
 ---
+```{r, echo=FALSE, warning=FALSE, fig.height=5, include = FALSE}
+chooseCRANmirror(graphics=FALSE, ind=1)
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(ggplot2)
+require(quanteda)
+require(tidytext)
+require(lme4)
+require(car)
+require(lme4)
+require(jtools)
+```
 
 ## The Data
 
@@ -11,7 +23,7 @@ output:
 
 ## Data cleaning and transformations
 Listings with high prices have no reviews at disporportionately high rates. Therefore, we remove listings with no reviews from our analysis.
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
 raw_data <- read.csv("AB_NYC_2019.csv")
   
 raw_data %>%
@@ -24,29 +36,31 @@ raw_data %>%
 ```
 
 
-### Unreliability of "Reviews per Month"
+## Unreliability of "Reviews per Month"
 We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
+data_transformed <- readRDS("data_transformed.rds")
 data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
   select(id, number_of_reviews, last_review, reviews_per_month)
 ```
 
-### Normalized Average Reviews
+## Normalized Average Reviews
 $$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
 $$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
 $$\text{Months Active} = \min \left\{\frac{\text{No. of Reviews - (Reviews per Month)(Months Inactive)}}{\text{Reviews per Month}}, 1\right\}$$
 $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
-### Normalized Average Reviews
+
+## Normalized Average Reviews
 Through normalization, we recover the popularity of each listing during the time it was active. 
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
 data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
   select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
 ```
 
 ## Text Analysis
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
 text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
 
 pvalues <- data.frame(summary(text_model)$coefficients[,4])
@@ -54,25 +68,21 @@ words <- names(coef(text_model))
 toplist <- as.data.frame(cbind(words, pvalues))
 colnames(toplist) <- c("words", "pvalues")
 
-toplist %>% 
+#toplist %>% 
   arrange(pvalues) %>% 
   filter(pvalues<0.05/219)
 
-View(data_transformed)
 ```
 
 ## Heirarchical Model
-```{r}
-require(car)
-require(lme4)
-install.packages("jtools")
-require(jtools)
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
-summary(model_heir)
-Anova(model_heir)
-coef(model_heir)
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
 
-plot_summs(model_heir)
+model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
+#summary(model_heir)
+#Anova(model_heir)
+#coef(model_heir)
+
+#plot_summs(model_heir)
 
 
 ```
