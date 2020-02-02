@@ -1,0 +1,475 @@
+---
+title: "Final Neighborhood Distance Analysis"
+author: "Justin Weltz"
+date: "2/1/2020"
+output: pdf_document
+---
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+require(dplyr)
+require(ggplot2)
+require(CARBayes)
+require(sp)
+require(spdep)
+require(StatMatch)
+require(cluster)
+```
+
+Data
+
+```{r}
+data <- readRDS("data_transformed.rds")
+#View(data)
+```
+
+```{r}
+data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + stat_density2d(aes(fill = ..level..), geom= "polygon")
+
+data %>% filter(neighbourhood == "Chinatown") %>% ggplot(aes(x  = latitude, y = longitude)) + stat_density2d(aes(fill = ..level..), geom= "polygon")
+```
+
+Bronx Analysis
+```{r}
+set.seed(3)
+data_bronx <- data %>% filter(neighbourhood_group == "Bronx") %>% dplyr::select(nrml_avg_reviews, price, neighbourhood, dist_to_subway, longitude, latitude)
+```
+
+Calculate Max Distance to One Neighbor and Create Adjacency Matrix
+```{r}
+data_clust <- data_bronx
+  
+points <- SpatialPoints(cbind(data_clust$latitude, data_clust$longitude))
+Sy8_nb <- knearneigh(points, longlat = T, k = 1)
+
+Sy8_nb <- knn2nb(Sy8_nb)
+
+dsts <- unlist(nbdists(Sy8_nb, points))
+min <- max(dsts)
+
+
+dup <- which(duplicated(data_clust %>% dplyr::select(longitude, latitude)))
+
+if(length(dup > 0)){
+data_clust <- data_clust[-dup, ]
+}
+
+latlon <- data_clust %>% dplyr::select(longitude, latitude)
+
+euclidean_dist <- daisy(latlon, metric = "euclidean")
+
+euclidean_mat <- as.matrix(euclidean_dist)
+dim(as.matrix(euclidean_dist))
+
+
+adjacency <- matrix(0, ncol(euclidean_mat), ncol(euclidean_mat))
+for (i in 1:ncol(euclidean_mat)){
+  for (j in 1:ncol(euclidean_mat)){
+    if (euclidean_mat[i,j] < min/1.7 ){
+      adjacency[i,j] = 1
+    }
+  }
+}
+mean(rowSums(adjacency))
+```
+
+
+Run the Model
+
+```{r}
+
+new_data_clust <- data_clust %>% dplyr::select(-latitude, -longitude)
+
+#summary(lm(nrml_avg_reviews~ neighbourhood, data = new_data_clust))
+
+mod<- lm(nrml_avg_reviews ~ ., data = new_data_clust)
+
+model_data <- model.matrix(mod)
+
+#model_data
+
+model_data <- cbind(new_data_clust$nrml_avg_reviews, model_data)
+
+model_data <- data.frame(model_data)
+
+#model_data
+
+#View(model_data[,-2])
+
+#memory.limit(size = 20000)
+ref_bronx <- model_data[,-2]
+
+#model_data
+#dim(adjacency)
+
+model_1_bronx <- S.CARleroux(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, burnin=1000, n.sample=200000, thin=10)
+
+
+model_2_bronx <- S.glm(data =  model_data[-2], formula = V1 ~ ., family="gaussian", burnin=1000, n.sample=200000, thin=10)
+
+#summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
+
+
+print(model_1_bronx)
+print(model_2_bronx)
+coef(model_1_bronx) - coef(model_2_bronx)
+
+
+#Z.price <- as.matrix(dist(new_data_clust$price, diag=TRUE, upper=TRUE))
+
+#model_3 <- S.CARdissimilarity(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, Z= list(Z.price =Z.price), W.binary = TRUE, burnin=1000, n.sample=100000, thin=10)
+#model_3
+
+```
+
+
+
+Manhattan Analysis
+```{r}
+set.seed(3)
+data_man <- data %>% filter(neighbourhood_group == "Manhattan") %>% dplyr::select(nrml_avg_reviews, price, neighbourhood, dist_to_subway, longitude, latitude) %>% sample_n(1000)
+```
+
+Calculate Max Distance to One Neighbor and Create Adjacency Matrix
+```{r}
+data_clust <- data_man
+  
+points <- SpatialPoints(cbind(data_clust$latitude, data_clust$longitude))
+Sy8_nb <- knearneigh(points, longlat = T, k = 1)
+
+Sy8_nb <- knn2nb(Sy8_nb)
+
+dsts <- unlist(nbdists(Sy8_nb, points))
+min <- max(dsts)
+
+
+dup <- which(duplicated(data_clust %>% dplyr::select(longitude, latitude)))
+
+if(length(dup > 0)){
+data_clust <- data_clust[-dup, ]
+}
+
+latlon <- data_clust %>% dplyr::select(longitude, latitude)
+
+euclidean_dist <- daisy(latlon, metric = "euclidean")
+
+euclidean_mat <- as.matrix(euclidean_dist)
+#dim(as.matrix(euclidean_dist))
+
+
+adjacency <- matrix(0, ncol(euclidean_mat), ncol(euclidean_mat))
+for (i in 1:ncol(euclidean_mat)){
+  for (j in 1:ncol(euclidean_mat)){
+    if (euclidean_mat[i,j] < min ){
+      adjacency[i,j] = 1
+    }
+  }
+}
+mean(rowSums(adjacency))
+```
+
+
+Run the Model
+
+```{r}
+
+new_data_clust <- data_clust %>% dplyr::select(-latitude, -longitude)
+
+#summary(lm(nrml_avg_reviews~ neighbourhood, data = new_data_clust))
+
+mod<- lm(nrml_avg_reviews ~ ., data = new_data_clust)
+
+model_data <- model.matrix(mod)
+
+#model_data
+
+model_data <- cbind(new_data_clust$nrml_avg_reviews, model_data)
+
+model_data <- data.frame(model_data)
+
+#model_data
+
+#View(model_data[,-2])
+
+#memory.limit(size = 20000)
+ref_man <- model_data[,-2]
+
+#model_data
+#dim(adjacency)
+
+model_1_man <- S.CARleroux(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, burnin=1000, n.sample=200000, thin=10)
+
+
+model_2_man <- S.glm(data =  model_data[-2], formula = V1 ~ ., family="gaussian", burnin=1000, n.sample=200000, thin=10)
+
+summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
+
+
+print(model_1_man)
+print(model_2_man)
+coef(model_1_man) - coef(model_2_man)
+
+
+#Z.price <- as.matrix(dist(new_data_clust$price, diag=TRUE, upper=TRUE))
+
+#model_3 <- S.CARdissimilarity(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, Z= list(Z.price =Z.price), W.binary = TRUE, burnin=1000, n.sample=100000, thin=10)
+#model_3
+
+```
+
+
+
+Queens Analysis
+```{r}
+set.seed(3)
+data_queens <- data %>% filter(neighbourhood_group == "Queens") %>% dplyr::select(nrml_avg_reviews, price, neighbourhood, dist_to_subway, longitude, latitude) %>% sample_n(1000)
+```
+
+Calculate Max Distance to One Neighbor and Create Adjacency Matrix
+```{r}
+data_clust <- data_queens
+  
+points <- SpatialPoints(cbind(data_clust$latitude, data_clust$longitude))
+Sy8_nb <- knearneigh(points, longlat = T, k = 1)
+
+Sy8_nb <- knn2nb(Sy8_nb)
+
+dsts <- unlist(nbdists(Sy8_nb, points))
+min <- max(dsts)
+
+
+dup <- which(duplicated(data_clust %>% dplyr::select(longitude, latitude)))
+
+if(length(dup > 0)){
+data_clust <- data_clust[-dup, ]
+}
+
+latlon <- data_clust %>% dplyr::select(longitude, latitude)
+
+euclidean_dist <- daisy(latlon, metric = "euclidean")
+
+euclidean_mat <- as.matrix(euclidean_dist)
+dim(as.matrix(euclidean_dist))
+
+
+adjacency <- matrix(0, ncol(euclidean_mat), ncol(euclidean_mat))
+for (i in 1:ncol(euclidean_mat)){
+  for (j in 1:ncol(euclidean_mat)){
+    if (euclidean_mat[i,j] < min/3 ){
+      adjacency[i,j] = 1
+    }
+  }
+}
+mean(rowSums(adjacency))
+```
+
+
+Run the Model
+
+```{r}
+
+new_data_clust <- data_clust %>% dplyr::select(-latitude, -longitude)
+
+#summary(lm(nrml_avg_reviews~ neighbourhood, data = new_data_clust))
+
+mod<- lm(nrml_avg_reviews ~ ., data = new_data_clust)
+
+model_data <- model.matrix(mod)
+
+#model_data
+
+model_data <- cbind(new_data_clust$nrml_avg_reviews, model_data)
+
+model_data <- data.frame(model_data)
+
+#model_data
+
+#View(model_data[,-2])
+
+#memory.limit(size = 20000)
+ref_queens <- model_data[,-2]
+
+#model_data
+#dim(adjacency)
+
+model_1_queens <- S.CARleroux(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, burnin=1000, n.sample=200000, thin=10)
+
+
+model_2_queens <- S.glm(data =  model_data[-2], formula = V1 ~ ., family="gaussian", burnin=1000, n.sample=200000, thin=10)
+
+summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
+
+
+print(model_1_queens)
+print(model_2_queens)
+coef(model_1_queens) - coef(model_2_queens)
+
+
+#Z.price <- as.matrix(dist(new_data_clust$price, diag=TRUE, upper=TRUE))
+
+#model_3 <- S.CARdissimilarity(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, Z= list(Z.price =Z.price), W.binary = TRUE, burnin=1000, n.sample=100000, thin=10)
+#model_3
+
+```
+
+
+
+
+Brooklyn Analysis
+```{r}
+set.seed(5)
+data_brook <- data %>% filter(neighbourhood_group == "Brooklyn") %>% dplyr::select(nrml_avg_reviews, price, neighbourhood, dist_to_subway, longitude, latitude) %>% sample_n(2000)
+data_brook %>% group_by(neighbourhood) %>% summarise(mean = mean(nrml_avg_reviews))
+```
+
+Calculate Max Distance to One Neighbor and Create Adjacency Matrix
+```{r}
+data_clust <- data_brook
+  
+points <- SpatialPoints(cbind(data_clust$latitude, data_clust$longitude))
+Sy8_nb <- knearneigh(points, longlat = T, k = 1)
+
+Sy8_nb <- knn2nb(Sy8_nb)
+
+dsts <- unlist(nbdists(Sy8_nb, points))
+min <- max(dsts)
+
+
+dup <- which(duplicated(data_clust %>% dplyr::select(longitude, latitude)))
+
+if(length(dup > 0)){
+data_clust <- data_clust[-dup, ]
+}
+
+latlon <- data_clust %>% dplyr::select(longitude, latitude)
+
+euclidean_dist <- daisy(latlon, metric = "euclidean")
+
+euclidean_mat <- as.matrix(euclidean_dist)
+dim(as.matrix(euclidean_dist))
+
+
+adjacency <- matrix(0, ncol(euclidean_mat), ncol(euclidean_mat))
+for (i in 1:ncol(euclidean_mat)){
+  for (j in 1:ncol(euclidean_mat)){
+    if (euclidean_mat[i,j] < min/2.5 ){
+      adjacency[i,j] = 1
+    }
+  }
+}
+mean(rowSums(adjacency))
+```
+
+
+Run the Model
+
+```{r}
+
+new_data_clust <- data_clust %>% dplyr::select(-latitude, -longitude)
+
+#summary(lm(nrml_avg_reviews~ neighbourhood, data = new_data_clust))
+
+mod<- lm(nrml_avg_reviews ~ ., data = new_data_clust)
+
+model_data <- model.matrix(mod)
+
+#model_data
+
+model_data <- cbind(new_data_clust$nrml_avg_reviews, model_data)
+
+model_data <- data.frame(model_data)
+
+#model_data
+
+#View(model_data[,-2])
+
+#memory.limit(size = 20000)
+ref_brook <- model_data[,2]
+
+#model_data
+#dim(adjacency)
+
+model_1_brook <- S.CARleroux(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, burnin=1000, n.sample=200000, thin=10)
+
+
+model_2_brook <- S.glm(data =  model_data[-2], formula = V1 ~ ., family="gaussian", burnin=1000, n.sample=200000, thin=10)
+
+summary(lm(data= new_data_clust, nrml_avg_reviews ~ .))
+
+
+print(model_1_brook)
+print(model_2_brook)
+coef(model_1_brook) - coef(model_2_brook)
+
+
+
+#Z.price <- as.matrix(dist(new_data_clust$price, diag=TRUE, upper=TRUE))
+
+#model_3 <- S.CARdissimilarity(data = model_data[-2], formula = V1 ~ ., family="gaussian", W= adjacency, Z= list(Z.price =Z.price), W.binary = TRUE, burnin=1000, n.sample=100000, thin=10)
+#model_3
+
+```
+
+
+```{r}
+require(stringr)
+
+data_br <- data.frame(str_remove(names(coef(model_1_bronx)), "neighbourhood"), unname(coef(model_1_bronx)), rep("Bronx", length(coef(model_1_bronx))))
+names(data_br) <- c("Variables", "Value", "Borough")
+
+
+data_br[,1] <-as.character(data_br[,1])
+data_br[,2] <-as.numeric(as.character(data_br[,2]))
+data_br[,3] <-as.character(data_br[,3])
+
+data_queens <- data.frame(str_remove(names(coef(model_1_queens)), "neighbourhood"), unname(coef(model_1_queens)), rep("Queens", length(coef(model_1_queens))))
+names(data_queens) <- c("Variables", "Value", "Borough")
+
+
+data_queens[,1] <-as.character(data_queens[,1])
+data_queens[,2] <-as.numeric(as.character(data_queens[,2]))
+data_queens[,3] <-as.character(data_queens[,3])
+
+data_brook <- data.frame(str_remove(names(coef(model_1_brook)), "neighbourhood"), unname(coef(model_1_brook)), rep("Brooklyn", length(coef(model_1_brook))))
+names(data_brook) <- c("Variables", "Value", "Borough")
+
+
+data_brook[,1] <-as.character(data_brook[,1])
+data_brook[,2] <-as.numeric(as.character(data_brook[,2]))
+data_brook[,3] <-as.character(data_brook[,3])
+
+data_man <- data.frame(str_remove(names(coef(model_1_man)), "neighbourhood"), unname(coef(model_1_man)), rep("Manhattan", length(coef(model_1_man))))
+names(data_man) <- c("Variables", "Value", "Borough")
+
+data_r <- rbind(c("rho", 0.9072, "Bronx"), c("rho", 0.9277, "Manhattan"),  c("rho", 0.7474, "Queens"), c("rho", 0.7389, "Brooklyn"))
+data_r <- data.frame(data_r)
+names(data_r) <- c("Variables", "Value", "Borough")
+
+data_man[,1] <-as.character(data_man[,1])
+data_man[,2] <-as.numeric(as.character(data_man[,2]))
+data_man[,3] <-as.character(data_man[,3])
+
+
+
+data<- bind_rows(data_br, data_queens, data_brook, data_man)
+
+saveRDS(data, "Coefficient_Data.rds")
+
+```
+
+```{r}
+data <- readRDS("Coefficient_Data.rds")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data %>% filter(Variables == "price") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data_r  %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
