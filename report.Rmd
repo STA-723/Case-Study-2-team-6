@@ -44,6 +44,27 @@ source("prettyplot.R")
 TODO: OB
 
 ## 2.3 Text analysis
+We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
+```{r}
+data_transformed %>% 
+  filter(id == c(5447434, 30232758)) %>% 
+  select(id, number_of_reviews, last_review, reviews_per_month)
+```
+
+$$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
+$$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
+$$\text{Months Active} = \min \left\{\frac{\text{No. of Reviews - (Reviews per Month)(Months Inactive)}}{\text{Reviews per Month}}, 1\right\}$$
+$$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
+
+Through normalization, we recover the popularity of each listing during the time it was active. 
+```{r}
+data_transformed %>% 
+  filter(id == c(5447434, 30232758)) %>% 
+  select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
+```
+
+
+
 ```{r}
 
 text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
@@ -69,18 +90,6 @@ raw_data %>%
   count(no_stay==1)%>% 
   mutate(prop = prop.table(n))%>% 
   ggplot(aes(x = quantile, y = prop, fill = `no_stay == 1`)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0))
-  
-
-raw_data %>%
-  mutate(quantile = ntile(price, 10)) %>%
-  mutate(missing = number_of_reviews==0) %>% 
-  select(missing)
-  
-
-raw_data 
-  group_by(quantile) %>%
-  mutate(missing = number_of_reviews==0) %>% 
-  ggplot(aes(missing)) + geom_bar()
 ```
 
 
