@@ -57,9 +57,25 @@ colnames(toplist) <- c("words", "pvalues")
 toplist %>% 
   arrange(pvalues) %>% 
   filter(pvalues<0.05/219)
+
+View(data_transformed)
 ```
 
 ## Heirarchical Model
+```{r}
+require(car)
+require(lme4)
+install.packages("jtools")
+require(jtools)
+model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
+summary(model_heir)
+Anova(model_heir)
+coef(model_heir)
+
+plot_summs(model_heir)
+
+
+```
 
 ## Conditionally Autoregressive Model
 
