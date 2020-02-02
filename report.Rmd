@@ -46,7 +46,43 @@ TODO: OB
 ## 2.3 Text analysis
 ```{r}
 
+text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
+
+pvalues <- data.frame(summary(text_model)$coefficients[,4])
+words <- names(coef(text_model))
+toplist <- as.data.frame(cbind(words, pvalues))
+colnames(toplist) <- c("words", "pvalues")
+
+toplist %>% 
+  arrange(pvalues) %>% 
+  filter(pvalues<0.05/219)
 ```
+
+TO SHOW NO STAYS AT HIGH PRICES
+```{r}
+raw_data <- read.csv("AB_NYC_2019.csv")
+  
+raw_data %>%
+  mutate(quantile = ntile(price, 10)) %>%
+  mutate(no_stay = number_of_reviews==0) %>% 
+  group_by(quantile) %>%
+  count(no_stay==1)%>% 
+  mutate(prop = prop.table(n))%>% 
+  ggplot(aes(x = quantile, y = prop, fill = `no_stay == 1`)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0))
+  
+
+raw_data %>%
+  mutate(quantile = ntile(price, 10)) %>%
+  mutate(missing = number_of_reviews==0) %>% 
+  select(missing)
+  
+
+raw_data 
+  group_by(quantile) %>%
+  mutate(missing = number_of_reviews==0) %>% 
+  ggplot(aes(missing)) + geom_bar()
+```
+
 
 ## 2.4 Additional data
 
@@ -66,9 +102,6 @@ summary(model_heir)
 Anova(model_heir)
 coef(model_heir)
 
-data_transformed %>% 
-  arrange(desc(price)) %>% 
-  select(price)
 ```
 
 ## 2.6 Global hierarchical model to compare effects of different features
