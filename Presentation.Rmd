@@ -1,0 +1,25 @@
+---
+title: "Popularity of NYC Airbnb Listings"
+author: "Olivier Binette, Justin Weltz, and Brian Kundinger"
+output: 
+  beamer_presentation
+---
+
+## The Data
+
+### Goal:
+
+## Data cleaning and transformations
+
+## Text Analysis
+
+## Heirarchical Model
+
+## Conditionally Autoregressive Model
+
+## Conclusions
+
+## Improvements
+
+
+
