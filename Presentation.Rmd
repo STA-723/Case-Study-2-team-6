@@ -81,12 +81,12 @@ colnames(toplist) <- c("words", "pvalues")
 
 ```
 
-## Heirarchical Model
+## Hierarchical Model
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +gender+ private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
+model_hier <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
 #summary(model_heir) #You can see the coefficents here
-#Anova(model_heir) #You can see the p-values here
+#anova(model_heir) #You can see the p-values here
 #coef(model_heir) #This is not that useful
 
 #plot_summs(model_heir)
@@ -95,13 +95,17 @@ model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price
 ```
 
 
-## Spatial Auto-correlation 
+## Spatial Auto-correlation: Theater District
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE}
 data <- readRDS("data_transformed.rds")
-data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
+data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + geom_density_2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
 
-data %>% filter(neighbourhood == "Chinatown") %>% ggplot(aes(x  = latitude, y = longitude)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Chinatown Density")
+data %>% filter(neighbourhood == "Chinatown") %>% 
+  ggplot(aes(x  = latitude, y = longitude)) + 
+  geom_density2d(aes(color = stat(level)), geom="polygon") + 
+  theme(legend.position = "none") + 
+  ggtitle("Chinatown Density")
 ```
 
 ## Conditionally Autoregressive Model
@@ -115,9 +119,10 @@ $$\rho \sim Uniform(0,1)$$
 
 This induces neighbor spatial correlation:
 
-$$COR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) = \frac{\rho w_{kj}}{\sqrt{(\rho \sum_{i=1}^k w_{ki} + 1 - \rho)(\rho \sum_{i=1}^k w_{ki} + 1 - \rho }}$$
+$$COR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) =$$
+$$\frac{\rho w_{kj}}{\sqrt{(\rho \sum_{i=1}^k w_{ki} + 1 - \rho)(\rho \sum_{i=1}^k w_{ki} + 1 - \rho }}$$
 
-## CAR Results Bronx
+## Evidence of Auto-Correlation
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE}
 
@@ -125,26 +130,45 @@ data_r <- rbind(c("rho", 0.9072, "Bronx"), c("rho", 0.9277, "Manhattan"),  c("rh
 data_r <- data.frame(data_r)
 names(data_r) <- c("Variables", "Value", "Borough")
 
-data <- readRDS("Coefficient_Data.rds")
-
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Bronx Coefficients")
-
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients")
-
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients")
-
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients")
-```
-
-## Other Interesting CAR Results
-
-```{r, warning=FALSE, message=FALSE, echo= FALSE}
-data %>% filter(Variables == "price") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Price Coefficients")
-
 data_r  %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Rho Coefficients")
 
-data %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Distance To Subw Coefficients")
 ```
+
+## CAR Results Bronx
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data <- readRDS("Coefficient_Data.rds")
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Bronx Coefficients (Reference: Allerton)")
+
+```
+
+
+## CAR Results Manhattan
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients (Reference: Battery Park City)")
+
+
+```
+
+## CAR Results Queens
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients (Reference: Arverne)")
+```
+
+## CAR Results Brooklyn
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients (Referene: Bath Beach)")
+```
+
+
 
 ## Conclusions
 
