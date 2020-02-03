@@ -97,9 +97,13 @@ model_hier <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE}
 data <- readRDS("data_transformed.rds")
-data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
+data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + geom_density_2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
 
-data %>% filter(neighbourhood == "Chinatown") %>% ggplot(aes(x  = latitude, y = longitude)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Chinatown Density")
+data %>% filter(neighbourhood == "Chinatown") %>% 
+  ggplot(aes(x  = latitude, y = longitude)) + 
+  geom_density2d(aes(color = stat(level)), geom="polygon") + 
+  theme(legend.position = "none") + 
+  ggtitle("Chinatown Density")
 ```
 
 ## Conditionally Autoregressive Model
