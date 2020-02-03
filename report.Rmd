@@ -27,6 +27,8 @@ library(tidyverse)
 library(cowplot)
 library(BAS)
 source("prettyplot.R")
+library(RColorBrewer)
+library(ggmap)
 ```
 
 # 1. Introduction
@@ -72,7 +74,7 @@ We deternmine the distance between neighbours so that every property has a neigh
 $$CAR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) = \frac{\rho w_{kj}}{\sqrt{(\rho \sum_{i=1}^k w_{ki} + 1 - \rho)(\rho \sum_{i=1}^k w_{ki} + 1 - \rho }}$$
 Unfortunately, since the CAR model take a very long time to run on large datasets, we weren't able to model this spatial relationship for every observation and ended up running seperate analyses on each of the boroughs with 1000 randomly selected observations (in each borough). Lastly, we also controlled for price and distance to subway when measuring neighborhood effects in this model.
 
-```{r, warning=FALSE, message=FALSE, echo= FALSE}
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
 data <- readRDS("data_transformed.rds")
 data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + stat_density2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
 
@@ -91,21 +93,21 @@ data_r <- rbind(c("rho", 0.9072, "Bronx"), c("rho", 0.9277, "Manhattan"),  c("rh
 data_r <- data.frame(data_r)
 names(data_r) <- c("Variables", "Value", "Borough")
 
-data <- readRDS("Coefficient_Data.rds")
+dat <- readRDS("Coefficient_Data.rds")
 
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Bronx Coefficients")
+dat%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Bronx") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Bronx Coefficients")
 
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients")
+dat%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients")
 
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients")
+dat%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients")
 
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients")
+dat%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients")
 
-data %>% filter(Variables == "price") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Price Coefficients")
+dat %>% filter(Variables == "price") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Price Coefficients")
 
 data_r  %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Rho Coefficients")
 
-data %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Distance To Subw Coefficients")
+dat %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Distance To Subw Coefficients")
 ```
 
 # Hierarchical model
@@ -114,13 +116,98 @@ data %>% filter(Variables == "dist_to_subway") %>% ggplot(aes(x=Borough,y=Value)
 require(car)
 require(lme4)
 #install.packages("car")
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway, data = data_transformed)
-summary(model_heir)
-anova(model_heir)
-coef(model_heir)
+model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway, data = data)
+#summary(model_heir)
+#anova(model_heir)
+#coef(model_heir)
 ```
 
 ## 2.6 Global hierarchical model to compare effects of different features
+
+We compare the effect of the different given and computed features of the dataset using a log-linear regression. With the log of our normalized monthly number of reviews as a popularity response, we focus on the effects of host gender, of log distance to subway station, of room type, listing price, on the minimum number of nights required, and on the presence of five keywords, while controlling for neighborhood effects. 
+
+The log-linear regression framework allows to obtain easily interpretable estimates of linear trends, while having some robustness to model misspecification. In our case, misspecification stems from the presence of non-linear associations and from a misspecified error model.
+
+```{r}
+library(MASS)
+data = data %>% filter(price != 0)
+
+model.full = lm(log(nrml_avg_reviews) ~ log(price) + log(dist_to_subway) + months_active + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+```
+
+```{r}
+library(car)
+
+bx = boxTidwell(log(nrml_avg_reviews) ~ price + dist_to_subway + months_active, 
+           other.x= ~ room_type + gender + 
+             private + square + minute + close + stock + apt + 
+             sunny + spacious + deluxe + newly + walking + cozy + 
+             central + fast + huge + west + green + neighbourhood, 
+           data=data, max.iter=5, tol=0.01)
+
+```
+
+```{r}
+bx_fun <- Vectorize(function(x, lambda) {
+  return((x^(lambda)-1)/lambda)
+})
+
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+
+```
+
+```{r}
+# Multiplicative effects as a function of quantiles
+plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
+  coef_est = c(coef(model)[name], confint(model)[name,])
+
+  coef_effect <- Vectorize(function(q) {
+    c(exp(coef_est[1]*quantile(values, q))/exp(coef_est[1]*quantile(values, 0.5)),
+      exp(coef_est[2]*quantile(values, q))/exp(coef_est[2]*quantile(values, 0.5)),
+      exp(coef_est[3]*quantile(values, q))/exp(coef_est[3]*quantile(values, 0.5)))
+  })
+  
+  q = seq(0,0.99,length.out = 200)
+  coef_curve = coef_effect(q)
+  
+  if(add == FALSE) {
+    fun=plot
+  } else {
+    fun=lines
+  }
+  
+  fun(q, coef_curve[1,], type="l", lwd=2, col=col,
+      xlab="Quantile",
+     ylab="Multiplicative effect compared to median",
+     ...)
+  polygon(c(q, rev(q)), c(coef_curve[2,], rev(coef_curve[3,])), border=NA, 
+        col=adjustcolor(cmap.knitr(col), alpha.f=0.2))
+}
+```
+
+```{r}
+plot_coef(model.full, "log(price)", log(data$price), ylim=c(0.75,1.25))
+plot_coef(model.full, "log(dist_to_subway)", log(data$dist_to_subway), 
+          add=T, col=2)
+plot_coef(model.full, "months_active", data$months_active, 
+          add=T, col=3)
+
+legend("topright", legend=c("log(price)", "log(dist_to_subway)"), lty=c(1,1),
+       col=c(cmap.knitr(1), cmap.knitr(2)), cex=0.8)
+```
+
+```{r}
+plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6))
+plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
+          add=T, col=2)
+plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
+          bx_fun(data$months_active, -0.27567), 
+          add=T, col=3)
+
+legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
+       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
+```
+
 
 - Keyword importance
     - Take the 5 most important ones to feed in the RF.
@@ -144,19 +231,49 @@ coef(model_heir)
 
 ## EDA
 
+We first look at a map of the airbnb listings over New York.
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE, cache=TRUE}
+register_google(key="AIzaSyDnqUXoVEle0J7gGGZQcdV5HQeQEGRlxLQ")
+
+map_coarse = get_stamenmap(c(left=-74.25, right=-73.5, bottom=40.49, top=41), 
+              zoom=10,
+              maptype="terrain-background",
+              #maptype="toner-background",
+              color="bw", force=TRUE)
+```
+
+```{r, fig.width=3, fig.height=3, fig.align="center"}
+ggmap(map_coarse) +
+  geom_point(data=data, aes(x=longitude, y=latitude), 
+             size=0.1, alpha=0.5,
+             color="black") +
+  stat_density2d(data=data, aes(x=longitude, y=latitude,
+                                fill=..level.., alpha=..level..), 
+                 geom="polygon") +
+  guides(alpha = FALSE, fill=FALSE) +
+  scale_fill_gradient((brewer.pal(7, "Spectral"))) +
+  xlim(-74.15, -73.7) +
+  ylim(40.55, 40.91) +
+  theme_void()
+```
+
+## Neighborhood concentration
+
+```{r, fig.width=3, fig.height=3, fig.align="center"}
 data %>% ggplot(aes(x=nrml_avg_reviews, color=gender)) +
   geom_density() +
   theme_minimal()
 ```
 
 
-
-
-
-
-
+```{r, fig.width=3, fig.height=3, fig.align="center"}
+ggplot() +
+  geom_hex(data=data, aes(x=longitude, y=latitude, fill=price))+
+  xlim(-74.2, -73.65) +
+  ylim(40.5, 40.95) +
+  theme_void()
+```
 
 
 
