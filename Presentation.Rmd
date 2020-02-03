@@ -15,6 +15,7 @@ require(lme4)
 require(car)
 require(lme4)
 require(jtools)
+require(xtable)
 ```
 
 ## The Data
@@ -40,6 +41,7 @@ raw_data %>%
 
 ## Unreliability of "Reviews per Month"
 We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
+
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 data_transformed <- readRDS("data_transformed.rds")
 before_transform <- data_transformed %>% 
