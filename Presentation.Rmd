@@ -121,7 +121,7 @@ This induces neighbor spatial correlation:
 $$COR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) =$$
 $$\frac{\rho w_{kj}}{\sqrt{(\rho \sum_{i=1}^k w_{ki} + 1 - \rho)(\rho \sum_{i=1}^k w_{ki} + 1 - \rho }}$$
 
-## Other Interesting CAR Results
+## Evidence of Auto-Correlation
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE}
 
