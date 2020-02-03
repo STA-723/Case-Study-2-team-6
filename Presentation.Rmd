@@ -79,12 +79,12 @@ colnames(toplist) <- c("words", "pvalues")
 
 ```
 
-## Heirarchical Model
+## Hierarchical Model
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway+ room_type +gender+ private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
+model_hier <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
 #summary(model_heir) #You can see the coefficents here
-#Anova(model_heir) #You can see the p-values here
+#anova(model_heir) #You can see the p-values here
 #coef(model_heir) #This is not that useful
 
 #plot_summs(model_heir)
