@@ -230,7 +230,17 @@ $$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{R
 $$\text{Months Active} = \frac{\text{No. of Reviews - Avg Reviews*Months Inactive}}{\text{Reviews per Month}}$$
 $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
 
-
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+ & id & No.\_reviews & last\_review & Avg\_reviews & Nrmlized\_reviews\\ 
+  \hline
+1 & 5447434 &  20 & 2016-01-03 & 0.41 & 2.86 \\ 
+  2 & 30232758 &  20 & 2019-07-02 & 2.84 & 2.84\\ 
+   \hline
+\end{tabular}
+\end{table}
 ## Spatial Auto-correlation and CAR Model
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE, fig.cap= "Theater District"}
