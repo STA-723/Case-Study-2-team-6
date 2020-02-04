@@ -81,20 +81,6 @@ colnames(toplist) <- c("words", "pvalues")
 
 ```
 
-## Hierarchical Model
-```{r, echo=FALSE, warning=FALSE, fig.height=5}
-
-model_hier <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious +deluxe + newly + walking + cozy + central + fast + huge + west + green, data = data_transformed)
-#summary(model_heir) #You can see the coefficents here
-#anova(model_heir) #You can see the p-values here
-#coef(model_heir) #This is not that useful
-
-#plot_summs(model_heir)
-
-
-```
-
-
 ## Spatial Auto-correlation: Theater District
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE}
@@ -148,26 +134,110 @@ data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != 
 ## CAR Results Manhattan
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-
 data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Manhattan") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Manhattan Coefficients (Reference: Battery Park City)")
-
-
 ```
 
 ## CAR Results Queens
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-
 data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Queens") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Queens Coefficients (Reference: Arverne)")
 ```
 
 ## CAR Results Brooklyn
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-
 data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients (Referene: Bath Beach)")
 ```
 
+## Global model: shape-constrained GAM
+
+To assess features of popular listings, we consider a log-linear model
+$$
+  \log(\texttt{monthly_reviews}) \sim  f_1(\texttt{price}) + f_2(\texttt{dist_to_subway}) + f_3(\texttt{months_active}) + \\
+  \texttt{room_type} + \texttt{gender} + \texttt{private} + \cdots + \texttt{cozy} +\\
+  \texttt{neighbourhoods}
+$$
+where $f_1, f_2 and f_3$ are increasing functions.
+
+- This allows us to estimate trends in an interpretable way, while controlling for neighborhood effects.
+
+- We tried estimating $f_1, f_2, f_3$ using shape-constrained generalized additive model packages (\texttt{cgam} and \texttt{scam}), but this didn't run in finite time.
+
+- Instead we used boxcox transforms of the predictors, as implemented in the \texttt{car} package.
+
+## Results for the global model
+
+```{r, cache=TRUE}
+library(MASS)
+data = data %>% filter(price != 0)
+
+model.full = lm(log(nrml_avg_reviews) ~ log(price) + log(dist_to_subway) + months_active + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+```
+
+```{r, cache=TRUE}
+library(car)
+
+bx = boxTidwell(log(nrml_avg_reviews) ~ price + dist_to_subway + months_active, 
+           other.x= ~ room_type + gender + 
+             private + square + minute + close + stock + apt + 
+             sunny + spacious + deluxe + newly + walking + cozy + 
+             central + fast + huge + west + green + neighbourhood, 
+           data=data, max.iter=5, tol=0.01)
+
+```
+
+```{r, cache=TRUE}
+bx_fun <- Vectorize(function(x, lambda) {
+  return((x^(lambda)-1)/lambda)
+})
+
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+
+```
+
+```{r}
+# Multiplicative effects as a function of quantiles
+plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
+  coef_est = c(coef(model)[name], confint(model)[name,])
+
+  coef_effect <- Vectorize(function(q) {
+    c(exp(coef_est[1]*quantile(values, q))/exp(coef_est[1]*quantile(values, 0.5)),
+      exp(coef_est[2]*quantile(values, q))/exp(coef_est[2]*quantile(values, 0.5)),
+      exp(coef_est[3]*quantile(values, q))/exp(coef_est[3]*quantile(values, 0.5)))
+  })
+  
+  q = seq(0,0.99,length.out = 200)
+  coef_curve = coef_effect(q)
+  
+  if(add == FALSE) {
+    fun=plot
+  } else {
+    fun=lines
+  }
+  
+  fun(q, coef_curve[1,], type="l", lwd=2, col=col,
+      xlab="Quantile",
+     ylab="Multiplicative effect compared to median",
+     ...)
+  polygon(c(q, rev(q)), c(coef_curve[2,], rev(coef_curve[3,])), border=NA, 
+        col=adjustcolor(cmap.knitr(col), alpha.f=0.2))
+}
+```
+
+
+```{r, fig.width=4, fig.height=3, fig.align="center"}
+plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6))
+plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
+          add=T, col=2)
+plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
+          bx_fun(data$months_active, -0.27567), 
+          add=T, col=3)
+
+abline(h=1, col=cmap.knitr(0), lty=2)
+
+legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
+       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
+```
 
 
 ## Conclusions
