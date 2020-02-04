@@ -198,6 +198,7 @@ where $f_1, f_2 and f_3$ are increasing functions.
 
 ```{r, cache=TRUE}
 library(MASS)
+data <- readRDS("data_transformed.rds")
 data = data %>% filter(price != 0)
 
 model.full = lm(log(nrml_avg_reviews) ~ log(price) + log(dist_to_subway) + months_active + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
@@ -220,7 +221,9 @@ bx_fun <- Vectorize(function(x, lambda) {
   return((x^(lambda)-1)/lambda)
 })
 
-model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+data = data %>% mutate(whole_price = price %in% seq(25, 5000, by=25))
+
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + whole_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
 
 ```
 
@@ -268,6 +271,30 @@ legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1
        col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
 ```
 
+
+```{r, fig.width=4, fig.height=3, fig.align="center"}
+keywords = c("private", "square", "minute", "close", "stock", "apt", "sunny", 
+             "spacious", "deluxe", "newly", "walking", "cozy", "central", 
+             "fast", "huge", "west", "green")
+effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
+confints = confint(model.bx, parm=paste0(keywords, "TRUE"))
+
+order = order(effects)
+
+
+ggplot() +
+  geom_col(mapping=aes(x=reorder(keywords, -effects), y=effects-1)) + 
+  geom_linerange(aes(x=reorder(keywords, -effects), ymin=confints[,1], ymax=confints[,2])) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45))+
+  scale_y_continuous(labels = function(y) y + 1)+
+  ylab("Multiplicative effect on popularity") +
+  xlab("Keywords")
+```
+
+```{r, fig.width=4, fig.height=3, fig.align="center"}
+model.bx %>% summary()
+```
 
 ## Conclusions
 
