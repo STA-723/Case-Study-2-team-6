@@ -121,16 +121,6 @@ data <- readRDS("data_transformed.rds")
 data %>% filter( neighbourhood == "Theater District" |neighbourhood == "Hell's Kitchen") %>% ggplot(aes(x  = latitude, y = longitude, color = neighbourhood)) + geom_density_2d(aes(fill = ..level..), geom= "polygon") + theme(legend.position = "none") + ggtitle("Hell's Kitchen and Theater District Density")
 ```
 
-## Spatial Auto-correlation: Chinatown
-
-```{r, warning=FALSE, message=FALSE, echo= FALSE}
-data %>% filter(neighbourhood == "Chinatown") %>% 
-  ggplot(aes(x  = latitude, y = longitude)) + 
-  geom_density2d(aes(color = stat(level)), geom="polygon") + 
-  theme(legend.position = "none") + 
-  ggtitle("Chinatown Density")
-```
-
 ## Conditionally Autoregressive Model
 The Leroux et. al. model:
 
@@ -183,10 +173,10 @@ data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != 
 ## CAR Results Brooklyn
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients (Referene: Bath Beach)")
+data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != "dist_to_subway") %>% filter(Borough == "Brooklyn") %>% ggplot(aes(x=Variables,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ggtitle("Brooklyn Coefficients (Reference: Bath Beach)")
 ```
 
-## Global model: shape-constrained GAM
+## Global model
 
 Log-linear model
 \begin{align*}
@@ -297,5 +287,33 @@ ggplot() +
   ylab("Multiplicative effect on popularity") +
   xlab("Keywords")
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
