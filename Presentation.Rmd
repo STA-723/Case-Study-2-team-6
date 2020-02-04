@@ -6,16 +6,18 @@ output:
 ---
 ```{r, echo=FALSE, warning=FALSE, fig.height=5, include = FALSE}
 chooseCRANmirror(graphics=FALSE, ind=1)
-knitr::opts_chunk$set(echo = TRUE)
-require(dplyr)
-require(ggplot2)
-require(quanteda)
-require(tidytext)
-require(lme4)
-require(car)
-require(lme4)
-require(jtools)
-require(xtable)
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(ggplot2)
+library(quanteda)
+library(tidytext)
+library(lme4)
+library(car)
+library(lme4)
+library(jtools)
+library(xtable)
+library(MASS)
+source("prettyplot.R")
 ```
 
 ## The Data
@@ -59,7 +61,7 @@ We can see that the study uses a different number of total months for each listi
 data_transformed <- readRDS("data_transformed.rds")
 before_transform <- data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
-  select(id, number_of_reviews, last_review, reviews_per_month)
+  dplyr::select(id, number_of_reviews, last_review, reviews_per_month)
 ```
 
 However, we can recover the "months active" by using the "last review," and construct a more reliable popularity metric.
@@ -89,7 +91,7 @@ Through normalization, we recover the popularity of each listing during the time
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 after_transform <- data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
-  select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
+  dplyr::select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
 ```
 
 ## Text Analysis
@@ -182,22 +184,19 @@ data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != 
 
 To assess features of popular listings, we consider a log-linear model
 $$
-  \log(\texttt{monthly_reviews}) \sim  f_1(\texttt{price}) + f_2(\texttt{dist_to_subway}) + f_3(\texttt{months_active}) + \\
-  \texttt{room_type} + \texttt{gender} + \texttt{private} + \cdots + \texttt{cozy} +\\
-  \texttt{neighbourhoods}
+  \log(\texttt{monthly reviews}) \sim  f_1(\texttt{price}) + f_2(\texttt{dist to subway}) + f_3(\texttt{months active})
 $$
-where $f_1, f_2 and f_3$ are increasing functions.
+where $f_1$, $f_2$ and $f_3$ are increasing functions.
 
 - This allows us to estimate trends in an interpretable way, while controlling for neighborhood effects.
 
-- We tried estimating $f_1, f_2, f_3$ using shape-constrained generalized additive model packages (\texttt{cgam} and \texttt{scam}), but this didn't run in finite time.
+- We tried estimating $f_1$, $f_2$, $f_3$ using shape-constrained generalized additive model packages (cgam and scam), but this didn't run in finite time.
 
-- Instead we used boxcox transforms of the predictors, as implemented in the \texttt{car} package.
+- Instead we used boxcox transforms of the predictors, as implemented in the car package.
 
 ## Results for the global model
 
 ```{r, cache=TRUE}
-library(MASS)
 data <- readRDS("data_transformed.rds")
 data = data %>% filter(price != 0)
 
@@ -205,15 +204,12 @@ model.full = lm(log(nrml_avg_reviews) ~ log(price) + log(dist_to_subway) + month
 ```
 
 ```{r, cache=TRUE}
-library(car)
-
 bx = boxTidwell(log(nrml_avg_reviews) ~ price + dist_to_subway + months_active, 
            other.x= ~ room_type + gender + 
              private + square + minute + close + stock + apt + 
              sunny + spacious + deluxe + newly + walking + cozy + 
              central + fast + huge + west + green + neighbourhood, 
            data=data, max.iter=5, tol=0.01)
-
 ```
 
 ```{r, cache=TRUE}
@@ -224,7 +220,6 @@ bx_fun <- Vectorize(function(x, lambda) {
 data = data %>% mutate(whole_price = price %in% seq(25, 5000, by=25))
 
 model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + whole_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
-
 ```
 
 ```{r}
@@ -271,6 +266,7 @@ legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1
        col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
 ```
 
+## Results for the global model
 
 ```{r, fig.width=4, fig.height=3, fig.align="center"}
 keywords = c("private", "square", "minute", "close", "stock", "apt", "sunny", 
@@ -292,13 +288,10 @@ ggplot() +
   xlab("Keywords")
 ```
 
-```{r, fig.width=4, fig.height=3, fig.align="center"}
-model.bx %>% summary()
-```
 
-## Conclusions
+## Results for the global model
 
 ## Improvements
 
-
+- Combining keyword selection with full model fitting (e.g. with a weighted lasso).
 
