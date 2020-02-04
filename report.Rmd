@@ -48,7 +48,7 @@ We note that $35\%$ of the listings are recorded as having zero availability for
 
 ## 2.2 Data cleaning and transformations
 
-We focus our analysis on listings which can be rented for less than 7 nights, we remove the 11 listings that are priced at more than five thousands dollars a night, and we remove those with no reviews. This represents typical listings which can be rented for a few nights at a non-extravagant price.
+Among the listings requiring stays of longer lengths of time, it was often unclear whether the price listed was a monthly, weekly, or daily price. We focus our analysis on listings which can be rented for less than 7 nights. Additionally, listings which had recieved no reviews had relatively high prices in comparison with the rest of the data set. Since listings that had recieved no reviews were not representative of the active listings, we removed these listings from our analysis. Lastly, we remove 11 listings that are priced at more than five thousands dollars a night. Many of these were event spaces or film and photography venues, and thus were not representative of typical Airbnb listing. We thus conducting our analysis with 32819 data points representing typical listings which can be rented for a few nights at a non-extravagant price.
 
 As a measure of popularity, we consider a normalized average number of review per months. Indeed, it appears that the average number of review per months has been computed including the months a listing has been inactive. We have therefore renormalized the average by removing on the denominator the number of months since the last time a listing received a review.
 
@@ -56,7 +56,9 @@ As a measure of popularity, we consider a normalized average number of review pe
 
 The Airbnb dataset was augmented with the following features:
 
-**1. Text analysis.** $\;$ We extracted all nouns and adjectives from the listing names and kept those with a frequency of at least 10. The data has been augmented to contain indicators of the presence or absence of each of these words.
+**1. Text analysis.** $\;$ We extracted all adjectives from the listing names and kept those with a frequency of at least 10. We then ran a linear regression of average reviews against these words, and identified all words with p-values below the Bonferonni adjustment of $\frac{0.05}{218}$. This left 18 words for further analysis, and the data has been augmented to contain indicators of the presence or absence of each of these words.
+
+Of important note, some of the words picked up by our algorithms are most likely not adjectives in the context of this dataset. For example, "apt" is most likely a shortening of "apartment," and not an adjective meaning "correct," and minute is most likely a measurement of time and proximity, and not an adjective meaning "small." We choose however to retain these words for the purpose of this analysis.
 
 **2. Distances to subway stations.** $\;$ We computed distance between listings and the nearest subway entrance using data from [New York's Open Data portal](https://data.cityofnewyork.us/Transportation/Subway-Entrances/drex-xx56).
 
@@ -205,6 +207,28 @@ legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1
 
 
 # Appendix
+
+## Proportion of Never Reviewed Listings by Price Decile 
+
+```{r, echo=FALSE, warning=FALSE, fig.height=5}
+raw_data <- read.csv("AB_NYC_2019.csv")
+  
+raw_data %>%
+  mutate(quantile = ntile(price, 10)) %>%
+  mutate(no_stay = number_of_reviews==0) %>% 
+  group_by(quantile) %>%
+  count(no_stay == 1)%>% 
+  rename(Never_reviewed = `no_stay == 1`) %>% 
+  mutate(prop = prop.table(n))%>% 
+  ggplot(aes(x = quantile, y = prop, fill = Never_reviewed)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0)) + ggtitle("Proportion of Never Reviewed by \n Price Decile")+ xlab("Price Decile") + ylab("Proportion")+theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Normalized Average Reviews Formula
+
+$$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
+$$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
+$$\text{Months Active} = \frac{\text{No. of Reviews - Avg Reviews*Months Inactive}}{\text{Reviews per Month}}$$
+$$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
 
 
 ## Spatial Auto-correlation and CAR Model
