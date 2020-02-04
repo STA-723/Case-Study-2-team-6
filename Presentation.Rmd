@@ -299,10 +299,3 @@ ggplot() +
 ```
 
 
-## Improvements
-
-- Integrating the analyses
-    - Combining keyword selection with full model fitting (e.g. with a weighted lasso).
-
-- Non-linear relationships
-
