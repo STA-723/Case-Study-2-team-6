@@ -33,14 +33,27 @@ raw_data %>%
   mutate(quantile = ntile(price, 10)) %>%
   mutate(no_stay = number_of_reviews==0) %>% 
   group_by(quantile) %>%
-  count(no_stay==1)%>% 
+  count(no_stay == 1)%>% 
+  rename(Never_reviewed = `no_stay == 1`) %>% 
   mutate(prop = prop.table(n))%>% 
-  ggplot(aes(x = quantile, y = prop, fill = `no_stay == 1`)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0))
+  ggplot(aes(x = quantile, y = prop, fill = Never_reviewed)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0)) + ggtitle("Proportion of Never Reviewed by \n Price Decile")+ xlab("Price Decile") + ylab("Proportion")+theme(plot.title = element_text(hjust = 0.5))
 ```
 
 
 ## Unreliability of "Reviews per Month"
 We can see that the study uses a different number of total months for each listing when calculating "average reviews per month."
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+ & id & No.\_reviews & last\_review & Avg\_reviews \\ 
+  \hline
+1 & 5447434 &  20 & 2016-01-03 & 0.41 \\ 
+  2 & 30232758 &  20 & 2019-07-02 & 2.84 \\ 
+   \hline
+\end{tabular}
+\end{table}
 
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 data_transformed <- readRDS("data_transformed.rds")
@@ -49,24 +62,40 @@ before_transform <- data_transformed %>%
   select(id, number_of_reviews, last_review, reviews_per_month)
 ```
 
+However, we can recover the "months active" by using the "last review," and construct a more reliable popularity metric.
+
 ## Normalized Average Reviews
 <font size ="1">
 $$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
 $$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
-$$\text{Months Active} = \min \left\{\frac{\text{No. of Reviews - (Reviews per Month)(Months Inactive)}}{\text{Reviews per Month}}, 1\right\}$$
+$$\text{Months Active} = \frac{\text{No. of Reviews - Avg Reviews*Months Inactive}}{\text{Reviews per Month}}$$
 $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
 </font>
 
 ## Normalized Average Reviews
 Through normalization, we recover the popularity of each listing during the time it was active. 
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrr}
+  \hline
+ & id & No.\_reviews & last\_review & Nrmlized\_reviews \\ 
+  \hline
+1 & 5447434 &  20 & 2016-01-03 & 2.86 \\ 
+  2 & 30232758 &  20 & 2019-07-02 & 2.86 \\ 
+   \hline
+\end{tabular}
+\end{table}
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
-data_transformed %>% 
+after_transform <- data_transformed %>% 
   filter(id == c(5447434, 30232758)) %>% 
   select(id, number_of_reviews, last_review, reviews_per_month, nrml_avg_reviews)
 ```
 
 ## Text Analysis
 We identified all adjectives that occured in 10 or more listings (219 words). We then ran a linear regression of average reviews against these words, and identified all words with p-values below the Bonferonni adjustment of $\frac{0.05}{218}$. This left 18 words for further analysis.
+
+private, square, minute, close, stock, apt, sunny, spacious, deluxe, newly, walking, central, fast, huge, west, green.
 ```{r, echo=FALSE, warning=FALSE, fig.height=5}
 text_model <- lm(nrml_avg_reviews~ . , data = data_transformed[, -c(1:6, 7:18, 20:21)])
 
@@ -75,9 +104,9 @@ words <- names(coef(text_model))
 toplist <- as.data.frame(cbind(words, pvalues))
 colnames(toplist) <- c("words", "pvalues")
 
-# toplist %>% 
-#   arrange(pvalues) %>% 
-#   filter(pvalues<0.05/219)
+#toplist %>% 
+    #arrange(pvalues) %>% 
+    #filter(pvalues<0.05/219)
 
 ```
 
