@@ -82,26 +82,9 @@ $$CAR(\phi_k, \phi_j | \phi_{-kj}, W, \rho) = \frac{\rho w_{kj}}{\sqrt{(\rho \su
 
 Unfortunately, since the CAR model take a very long time to run on large datasets, we weren't able to model this spatial relationship for every observation and ended up running seperate analyses on each of the boroughs with 1000 randomly selected observations (in each borough). Lastly, we also controlled for price and distance to subway when measuring neighborhood effects in this model.
 
-# CAR Results
+## 2.5 Global additive model for feature effects
 
-Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates that spatial auto-correlation is present in the dataset even after accounting for neighborhood effects. Even though figures 4-7 indicated a lot of diversity in effects and effect sizes based on neighborhoods, there are only a few coefficients whose $95\%$ posterior credible intervals do not include zero. Only Schuresville and Eastchester in the Bronx (figure 4) and Jamaica Hills and East Elmhurst in Queens (figure 6) have a "significant" effect. Since Queens has the highest popularity intercept and East Elmhurt has a significant positive effect on top of this baseline, it seems like this is the best location for a new Airbnb owner to locate his property! However, overwhelming, the effect of neighbourhoods controlling for distance seems to be negligible. This finding may be the result of NYC's highly interconnected and effecient transit system, which enables visitors to travel to major destinations with ease regardless of their starting point.
-
-
-# Hierarchical model
-
-```{r}
-require(car)
-require(lme4)
-#install.packages("car")
-model_heir <- lmer(nrml_avg_reviews~ (1|neighbourhood_group/neighbourhood)+price +dist_to_subway, data = data)
-#summary(model_heir)
-#anova(model_heir)
-#coef(model_heir)
-```
-
-## 2.6 Global hierarchical model to compare effects of different features
-
-We compare the effect of the different given and computed features of the dataset using a log-linear regression. With the log of our normalized monthly number of reviews as a popularity response, we focus on the effects of host gender, of log distance to subway station, of room type, listing price, on the minimum number of nights required, and on the presence of five keywords, while controlling for neighborhood effects. 
+We compare the effect of the different given and computed features of the dataset using a log-linear regression. With the log of our normalized monthly number of reviews as a popularity response, we focus on the effects of distance to subway station, of listing price, of number of months active, of host gender, of room type, and of the the keywords identified in the text analysis, while controlling for neighborhood effects.
 
 The log-linear regression framework allows to obtain easily interpretable estimates of linear trends, while having some robustness to model misspecification. In our case, misspecification stems from the presence of non-linear associations and from a misspecified error model.
 
@@ -198,6 +181,11 @@ legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1
 
 # 3. Results
 
+# CAR Results
+
+Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates that spatial auto-correlation is present in the dataset even after accounting for neighborhood effects. Even though figures 4-7 indicated a lot of diversity in effects and effect sizes based on neighborhoods, there are only a few coefficients whose $95\%$ posterior credible intervals do not include zero. Only Schuresville and Eastchester in the Bronx (figure 4) and Jamaica Hills and East Elmhurst in Queens (figure 6) have a "significant" effect. Since Queens has the highest popularity intercept and East Elmhurt has a significant positive effect on top of this baseline, it seems like this is the best location for a new Airbnb owner to locate his property! However, overwhelming, the effect of neighbourhoods controlling for distance seems to be negligible. This finding may be the result of NYC's highly interconnected and effecient transit system, which enables visitors to travel to major destinations with ease regardless of their starting point.
+
+
 - Graphical display of the results
 
 - OB can help with the graphical display
@@ -223,9 +211,10 @@ raw_data %>%
   ggplot(aes(x = quantile, y = prop, fill = Never_reviewed)) + geom_bar(stat = 'identity', position = 'dodge', alpha = 2/3) + geom_hline(yintercept = mean(raw_data$number_of_reviews == 0)) + ggtitle("Proportion of Never Reviewed by \n Price Decile")+ xlab("Price Decile") + ylab("Proportion")+theme(plot.title = element_text(hjust = 0.5))
 ```
 
+<!--
 ## Normalized Average Reviews Formula
 
-$$\frac{\text{Days between July 8, 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
+$$\frac{\text{Days between July 8 2019 and Last Review}}{30.42} = \text{Months Inactive} $$
 $$\frac{\text{No. of Reviews}}{\text{Months Active + Months Inactive}} = \text{Reviews per Month}$$
 $$\text{Months Active} = \frac{\text{No. of Reviews - Avg Reviews*Months Inactive}}{\text{Reviews per Month}}$$
 $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months Active}}$$
@@ -241,6 +230,8 @@ $$\text{Normalized Average Reviews} = \frac{\text{Total Reviews}}{\text{Months A
    \hline
 \end{tabular}
 \end{table}
+-->
+
 ## Spatial Auto-correlation and CAR Model
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE, fig.cap= "Theater District"}
