@@ -46,7 +46,7 @@ data <- readRDS("data_transformed.rds")
 
 The \texttt{Airbnb} dataset contains data on $48\,895$ listings from New York City which have been active before July 8, 2019. Information is given on the name of the listing, the name of of the host, the type of room available (entire home, private room or shared room), on the minimum number of nights for a rental, on the yearly availability, on the location of the listing (coordinates and neighborhood), on its price, on the number of reviews, and on the average number of reviews per months. 
 
-We note that $35\%$ of the listings are recorded as having zero availability for booking. It is unclear in these cases if the listing is fully booked, or if it is simply no longer available for booking and has been temporarily disabled. Furthermore, the listed availability may have changed throughout time, and we are only provided with its value at the time when the data was collected. We do not use this variable in our analyses given these challenges in interpretability, 
+We note that $35\%$ of the listings are recorded as having zero availability for booking. It is unclear in these cases if the listing is fully booked, or if it is simply no longer available for booking and has been temporarily disabled. Furthermore, the listed availability may have changed throughout time, and we are only provided with its value at the time when the data was collected. We do not use this variable in our analyses given these challenges in interpretability.
 
 ## 2.2 Data cleaning and transformations
 
@@ -119,9 +119,9 @@ bx_fun <- Vectorize(function(x, lambda) {
   return((x^(lambda)-1)/lambda)
 })
 
-data = data %>% mutate(whole_price = price %in% seq(25, 5000, by=25))
+data = data %>% mutate(round_price = price %in% seq(25, 5000, by=25))
 
-model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + entire_home + gender + whole_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data %>% mutate(entire_home= room_type == "Entire home/apt"))
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + entire_home + gender + round_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data %>% mutate(entire_home= room_type == "Entire home/apt"))
 ```
 
 
@@ -147,7 +147,7 @@ plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
   
   fun(q, coef_curve[1,], type="l", lwd=2, col=col,
       xlab="Quantile",
-     ylab="Multiplicative effect",
+     ylab="Multiplicative effect vs median",
      ...)
   polygon(c(q, rev(q)), c(coef_curve[2,], rev(coef_curve[3,])), border=NA, 
         col=adjustcolor(cmap.knitr(col), alpha.f=0.2))
@@ -164,7 +164,9 @@ Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates
 ## 3.2 Feature effects
 
 ```{r, fig.width=4, fig.height=3.5, fig.align="center"}
-plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6))
+par(cex.lab=0.8)
+plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6),
+          cex=0.5, cex.axis=0.7)
 plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
           add=T, col=2)
 plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
@@ -174,11 +176,11 @@ plot_coef(model.bx, "bx_fun(months_active, -0.27567)",
 abline(h=1, col=cmap.knitr(0), lty=2)
 
 legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
-       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
+       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.7)
 ```
 
 ```{r, fig.width=5, fig.height=3, fig.align="center"}
-keywords = c("whole_price", "entire_home", "private", "square", "minute", "close", "stock", "apt", "sunny", 
+keywords = c("round_price", "entire_home", "private", "square", "minute", "close", "stock", "apt", "sunny", 
              "spacious", "deluxe", "newly", "walking", "cozy", "central", 
              "fast", "huge", "west", "green")
 effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
@@ -264,6 +266,7 @@ names(data_r) <- c("Variables", "Value", "Borough")
 data_r  %>% ggplot(aes(x=Borough,y=Value)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Rho Coefficients")
 
 ```
+
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Bronx"}
