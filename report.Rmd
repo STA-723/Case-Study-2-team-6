@@ -29,6 +29,8 @@ library(BAS)
 source("prettyplot.R")
 library(RColorBrewer)
 library(ggmap)
+library(car)
+library(MASS)
 ```
 
 ```{r, include=FALSE}
@@ -84,37 +86,44 @@ Unfortunately, since the CAR model take a very long time to run on large dataset
 
 ## 2.5 Global additive model for feature effects
 
-We compare the effect of the different given and computed features of the dataset using a log-linear regression. With the log of our normalized monthly number of reviews as a popularity response, we focus on the effects of distance to subway station, of listing price, of number of months active, of host gender, of room type, and of the the keywords identified in the text analysis, while controlling for neighborhood effects.
+We compare the effect of the different given and computed features of the dataset using a log-linear additive model. Using standard $R$ formula representation, our model is therefore
+\begin{align*}
+  \log(\texttt{monthly reviews}) \sim &\overbrace{f_1(\texttt{price}) + f_2(\texttt{dist to subway}) + f_3(\texttt{months active})}^{\text{continuous variables}} \\
+  &+ \underbrace{\texttt{entire home/apt} + \texttt{female} + \texttt{round_price}}_{\text{binary features}} + \underbrace{\texttt{private} + \cdots + \texttt{cozy}}_{keywords}\\
+  &+ \texttt{neighbourhoods}
+\end{align*}
+where $f_1$, $f_2$ and $f_3$ are increasing functions, and we assume a normal error distribution. The variables $\texttt{entire home/apt}$, $\texttt{female}$ and $\texttt{round_price}$ are indicators that the listing is an entire home/apt, that the host is thought to be female, and that the price of the listing is a multiple of $50$. The "keyword" variables are indicators that the title contains the words identified by our text analysis, and finally the baseline effect of the neighborhood factor is accounted for.
 
-The log-linear regression framework allows to obtain easily interpretable estimates of linear trends, while having some robustness to model misspecification. In our case, misspecification stems from the presence of non-linear associations and from a misspecified error model.
+The functions $f_1$, $f_2$ and $f_3$ are Box-Cox transformations of the form $f(x) = (x^{\lambda}-1)/\lambda$ and are estimated by maximum likelihood using the \texttt{boxTidwell} function of the \texttt{car} package. We also tried using monotonicity-constrained splines as implpemented in the shape constrained generalized additive model packages \texttt{cgam} and \texttt{scam}, but these took too long to run on our machines.
 
-```{r}
-library(MASS)
+This log-linear additive model, with monotonically transformed continuous variables, provides us with easily interpretable estimates of linear trends.
+
+```{r, cache=TRUE}
+data <- readRDS("data_transformed.rds")
 data = data %>% filter(price != 0)
 
 model.full = lm(log(nrml_avg_reviews) ~ log(price) + log(dist_to_subway) + months_active + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
 ```
 
-```{r}
-library(car)
-
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
 bx = boxTidwell(log(nrml_avg_reviews) ~ price + dist_to_subway + months_active, 
            other.x= ~ room_type + gender + 
              private + square + minute + close + stock + apt + 
              sunny + spacious + deluxe + newly + walking + cozy + 
              central + fast + huge + west + green + neighbourhood, 
            data=data, max.iter=5, tol=0.01)
-
 ```
 
-```{r}
+```{r, cache=TRUE}
 bx_fun <- Vectorize(function(x, lambda) {
   return((x^(lambda)-1)/lambda)
 })
 
-model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + room_type + gender + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data)
+data = data %>% mutate(whole_price = price %in% seq(25, 5000, by=25))
 
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + entire_home + gender + whole_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data %>% mutate(entire_home= room_type == "Entire home/apt"))
 ```
+
 
 ```{r}
 # Multiplicative effects as a function of quantiles
@@ -144,40 +153,6 @@ plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
         col=adjustcolor(cmap.knitr(col), alpha.f=0.2))
 }
 ```
-
-```{r}
-plot_coef(model.full, "log(price)", log(data$price), ylim=c(0.75,1.25))
-plot_coef(model.full, "log(dist_to_subway)", log(data$dist_to_subway), 
-          add=T, col=2)
-plot_coef(model.full, "months_active", data$months_active, 
-          add=T, col=3)
-
-legend("topright", legend=c("log(price)", "log(dist_to_subway)"), lty=c(1,1),
-       col=c(cmap.knitr(1), cmap.knitr(2)), cex=0.8)
-```
-
-```{r}
-plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6))
-plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
-          add=T, col=2)
-plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
-          bx_fun(data$months_active, -0.27567), 
-          add=T, col=3)
-
-abline(h=1, col=cmap.knitr(0), lty=2)
-
-legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
-       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
-```
-
-
-- Keyword importance
-    - Take the 5 most important ones to feed in the RF.
-
-- Global hierarchical model
-
-- With all variables (excepted distance)
-
 
 # 3. Results
 
