@@ -92,7 +92,7 @@ We compare the effect of the different given and computed features of the datase
   &+ \underbrace{\texttt{entire home/apt} + \texttt{female} + \texttt{round_price}}_{\text{binary features}} + \underbrace{\texttt{private} + \cdots + \texttt{cozy}}_{keywords}\\
   &+ \texttt{neighbourhoods}
 \end{align*}
-where $f_1$, $f_2$ and $f_3$ are increasing functions, and we assume a normal error distribution. The variables $\texttt{entire home/apt}$, $\texttt{female}$ and $\texttt{round_price}$ are indicators that the listing is an entire home/apt, that the host is thought to be female, and that the price of the listing is a multiple of $50$. The "keyword" variables are indicators that the title contains the words identified by our text analysis, and finally the baseline effect of the neighborhood factor is accounted for.
+where $f_1$, $f_2$ and $f_3$ are increasing functions, and we assume a normal error distribution. The variables $\texttt{entire home/apt}$, $\texttt{female}$ and $\texttt{round_price}$ are indicators that the listing is an entire home/apt, that the host is thought to be female, and that the price of the listing is a multiple of $50$. The "keyword" variables are indicators that the title contains the words identified by our text analysis, and finally the baseline effect of the neighborhood factor is controlled.
 
 The functions $f_1$, $f_2$ and $f_3$ are Box-Cox transformations of the form $f(x) = (x^{\lambda}-1)/\lambda$ and are estimated by maximum likelihood using the \texttt{boxTidwell} function of the \texttt{car} package. We also tried using monotonicity-constrained splines as implpemented in the shape constrained generalized additive model packages \texttt{cgam} and \texttt{scam}, but these took too long to run on our machines.
 
@@ -147,7 +147,7 @@ plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
   
   fun(q, coef_curve[1,], type="l", lwd=2, col=col,
       xlab="Quantile",
-     ylab="Multiplicative effect compared to median",
+     ylab="Multiplicative effect",
      ...)
   polygon(c(q, rev(q)), c(coef_curve[2,], rev(coef_curve[3,])), border=NA, 
         col=adjustcolor(cmap.knitr(col), alpha.f=0.2))
@@ -156,15 +156,46 @@ plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
 
 # 3. Results
 
-# CAR Results
+## 3.1 Neighborhood effects
 
 Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates that spatial auto-correlation is present in the dataset even after accounting for neighborhood effects. Even though figures 4-7 indicated a lot of diversity in effects and effect sizes based on neighborhoods, there are only a few coefficients whose $95\%$ posterior credible intervals do not include zero. Only Schuresville and Eastchester in the Bronx (figure 4) and Jamaica Hills and East Elmhurst in Queens (figure 6) have a "significant" effect. Since Queens has the highest popularity intercept and East Elmhurt has a significant positive effect on top of this baseline, it seems like this is the best location for a new Airbnb owner to locate his property! However, overwhelming, the effect of neighbourhoods controlling for distance seems to be negligible. This finding may be the result of NYC's highly interconnected and effecient transit system, which enables visitors to travel to major destinations with ease regardless of their starting point.
 
 
-- Graphical display of the results
+## 3.2 Feature effects
 
-- OB can help with the graphical display
+```{r, fig.width=4, fig.height=3.5, fig.align="center"}
+plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6))
+plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
+          add=T, col=2)
+plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
+          bx_fun(data$months_active, -0.27567), 
+          add=T, col=3)
 
+abline(h=1, col=cmap.knitr(0), lty=2)
+
+legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
+       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.8)
+```
+
+```{r, fig.width=5, fig.height=3, fig.align="center"}
+keywords = c("whole_price", "entire_home", "private", "square", "minute", "close", "stock", "apt", "sunny", 
+             "spacious", "deluxe", "newly", "walking", "cozy", "central", 
+             "fast", "huge", "west", "green")
+effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
+confints = confint(model.bx, parm=paste0(keywords, "TRUE"))
+
+order = order(effects)
+
+
+ggplot() +
+  geom_col(mapping=aes(x=reorder(keywords, -effects), y=effects-1)) + 
+  geom_linerange(aes(x=reorder(keywords, -effects), ymin=confints[,1], ymax=confints[,2])) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45))+
+  scale_y_continuous(labels = function(y) y + 1)+
+  ylab("Multiplicative effect on popularity") +
+  xlab("Keywords")
+```
 
 # 4. Discussion
 
