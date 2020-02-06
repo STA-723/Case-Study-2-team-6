@@ -41,12 +41,9 @@ data <- readRDS("data_transformed.rds")
 
 Airbnb is a online marketplace of rooms, houses and appartments to rent for short periods of time, as an alternative to hotels and other accomodation services. Having started just around 2008, the growth of Airbnb has been phenomenal. Now more than 6 million listings are available worldwide.
 
-This case study focuses on New York City 2019 listings compiled by Murray Cox as part of the Inside Airbnb project, originally with the goal of supporting thoughtful debate surrounding the socio-economic impact of this growing business. We study this data more superficially, focusing on
+This case study focuses on New York City 2019 listings compiled by Murray Cox as part of the Inside Airbnb project, originally with the goal of supporting thoughtful debate surrounding the socio-economic impact of this growing business. We study this data more superficially, focusing on (1) the neighborhood brand effects on listing popularity; and (2) how different listing features are associated with popularity.
 
-1. the neighborhood brand effects on listing popularity; and
-2. how different listing features are associated with popularity.
-
-Our measure of popularity is defined as the monthly number of reviews per month, properly normalized to account for disrepancy in the data. This is described in Section 2.2. A conditional auto-regressive spatial model is used to assess neighborhood brand effect (Section 2.4), while a global additive model allows us to extract conditional trends related to listing popularity (Section 2.5). The results of our analyses are presented in Section 3, supported with Figures listed in the Appendix. We reflect more broadly on the problem in Section 4.
+Our measure of popularity is defined as the monthly number of reviews per month, properly normalized to account for disrepancy in the data (see Section 2.2). A conditional auto-regressive spatial model is used to assess neighborhood brand effect (Section 2.4), while a global additive model allows us to extract conditional trends related to listing popularity (Section 2.5). The results of our analyses are presented in Section 3, supported with Figures listed in the Appendix. We reflect more broadly on the problem in Section 4.
 
 # 2. Materials and methods
 
@@ -171,8 +168,32 @@ Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates
 
 ## 3.2 Feature effects
 
-```{r, fig.width=4, fig.height=3.5, fig.align="center"}
-par(cex.lab=0.8)
+The global log-linear additive model provides estimates of trends associating features to listing popularity, after accounting for neighborhood baseline effects and other factors.
+
+```{r, fig.width=7.5, fig.height=3}
+library(grid)
+library(gridBase)
+library(ggplot2)
+
+# start new page
+plot.new() 
+
+# setup layout
+gl <- grid.layout(nrow=1, ncol=2)
+# grid.show.layout(gl)
+
+# setup viewports
+vp.1 <- viewport(layout.pos.col=1, layout.pos.row=1) 
+vp.2 <- viewport(layout.pos.col=2, layout.pos.row=1) 
+# init layout
+pushViewport(viewport(layout=gl))
+# access the first position
+pushViewport(vp.1)
+
+# start new base graphics in first viewport
+par(new=TRUE, fig=gridFIG(), mar=c(3,3,1,1))
+
+par(cex.lab=0.85)
 plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6),
           cex=0.5, cex.axis=0.7)
 plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
@@ -185,9 +206,15 @@ abline(h=1, col=cmap.knitr(0), lty=2)
 
 legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
        col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.7)
-```
 
-```{r, fig.width=5, fig.height=3, fig.align="center"}
+
+# done with the first viewport
+popViewport()
+
+# move to the next viewport
+pushViewport(vp.2)
+
+
 keywords = c("round_price", "entire_home", "private", "square", "minute", "close", "stock", "apt", "sunny", 
              "spacious", "deluxe", "newly", "walking", "cozy", "central", 
              "fast", "huge", "west", "green")
@@ -197,15 +224,23 @@ confints = confint(model.bx, parm=paste0(keywords, "TRUE"))
 order = order(effects)
 
 
-ggplot() +
+ggplotted = ggplot() +
   geom_col(mapping=aes(x=reorder(keywords, -effects), y=effects-1)) + 
   geom_linerange(aes(x=reorder(keywords, -effects), ymin=confints[,1], ymax=confints[,2])) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45))+
   scale_y_continuous(labels = function(y) y + 1)+
   ylab("Multiplicative effect on popularity") +
-  xlab("Keywords")
+  xlab("Keywords and factors")
+
+
+# print our ggplot graphics here
+print(ggplotted, newpage = FALSE)
+
+# done with this viewport
+popViewport(1)
 ```
+
 
 # 4. Discussion
 
