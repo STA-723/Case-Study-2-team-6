@@ -39,12 +39,20 @@ data <- readRDS("data_transformed.rds")
 
 # 1. Introduction
 
+Airbnb is a online marketplace of rooms, houses and appartments to rent for short periods of time, as an alternative to hotels and other accomodation services. Having started just around 2008, the growth of Airbnb has been phenomenal. Now more than 6 million listings are available worldwide.
+
+This case study focuses on New York City 2019 listings compiled by Murray Cox as part of the Inside Airbnb project, originally with the goal of supporting thoughtful debate surrounding the socio-economic impact of this growing business. We study this data more superficially, focusing on
+
+1. the neighborhood brand effects on listing popularity; and
+2. how different listing features are associated with popularity.
+
+Our measure of popularity is defined as the monthly number of reviews per month, properly normalized to account for disrepancy in the data. This is described in Section 2.2. A conditional auto-regressive spatial model is used to assess neighborhood brand effect (Section 2.4), while a global additive model allows us to extract conditional trends related to listing popularity (Section 2.5). The results of our analyses are presented in Section 3, supported with Figures listed in the Appendix. We reflect more broadly on the problem in Section 4.
 
 # 2. Materials and methods
 
 ## 2.1 Data
 
-The \texttt{Airbnb} dataset contains data on $48\,895$ listings from New York City which have been active before July 8, 2019. Information is given on the name of the listing, the name of of the host, the type of room available (entire home, private room or shared room), on the minimum number of nights for a rental, on the yearly availability, on the location of the listing (coordinates and neighborhood), on its price, on the number of reviews, and on the average number of reviews per months. 
+The \texttt{Airbnb} dataset contains $48\,895$ listings from New York City which have been active before July 8, 2019. Information is given on the name of the listing, the name of of the host, the type of room available (entire home, private room or shared room), on the minimum number of nights for a rental, on the yearly availability, on the location of the listing (coordinates and neighborhood), on its price, on the number of reviews, and on the average number of reviews per months.
 
 We note that $35\%$ of the listings are recorded as having zero availability for booking. It is unclear in these cases if the listing is fully booked, or if it is simply no longer available for booking and has been temporarily disabled. Furthermore, the listed availability may have changed throughout time, and we are only provided with its value at the time when the data was collected. We do not use this variable in our analyses given these challenges in interpretability.
 
