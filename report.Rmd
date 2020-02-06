@@ -74,7 +74,7 @@ Of important note, some of the words picked up by our algorithms are most likely
 
 ## 2.4 Conditional autoregressive model to assess neighborhood effect on popularity
 
-In order to advise a new Airbnb owner on the best neighborhood to set up a property, we have to be careful to separate the neighborhood effect on popularity from auto-correlation over the spatial dimension. For example, figure 1 and 2 demonstate two density patterns that would make an analysis of neighborhood popularity without controlling for distance problematic. The Theater District in New York City includes Times Square and many other major tourist attractions. In figure 1, we can see that most of the Airbnb locations in Hell's Kitchen are concentrated next to the Theater Disctrict, meaning that the measured effect on popularity of being in the latter nieghborhood may be inflated because it is highly correlated with the desirability of the theater district. Figure 2, depicts another interesting density pattern. We can see that although there are many Airbnb locations on the outskirts of Chinatown, there are very few in the heart of the neighborhood. This could cause Chinatown's popularity coefficient to be closely correlated with the neighborhoods that surround it. If we observe high popularity in this neighborhood and then advise a new Airbnb owner with this information, they could make a large strategic blunder by placing their property in middle of the neighborhood. This seems problematic!
+In order to advise a new Airbnb owner on the best neighborhood to set up a property, we have to be careful to separate the neighborhood effect on popularity from auto-correlation over the spatial dimension. For example, figure 1 and 2 demonstate two density patterns that would make an analysis of neighborhood popularity without controlling for distance problematic. The Theater District in New York City includes Times Square and many other major tourist attractions. In figure 1, we can see that most of the Airbnb locations in Hell's Kitchen are concentrated next to the Theater Disctrict, meaning that the measured effect on popularity of being in the latter nieghborhood may be inflated because it is highly correlated with the desirability of the theater district. Figure 2, depicts another interesting density pattern. We can see that although there are many Airbnb locations on the outskirts of Chinatown, there are very few in the heart of the neighborhood. This could cause Chinatown's popularity coefficient to be closely correlated with the neighborhoods that surround it. If we observe high popularity in this neighborhood and then advise a new Airbnb owner with this information, they could make a large strategic blunder by placing their property in middle of the neighborhood. This is seems problematic.
 
 Therefore, we will account for the density of Airbnb locations so that we can measure the "name brand effect" of neighborhoods on popularity. In order to control for the distance between properties, we will use the conditionally auto-regressive model proposed by Lareaux et al. in "Estimation of Disease Rates in Small Areas: A New Mixed Model for Spatial Dependence." This Bayesian approach models spatial auto-correlation as a smooth function of distance using an adjacency matrix and a series of priors on distance effects specified in the Appendix.
 
@@ -159,7 +159,7 @@ plot_coef <- function(model, name, values, col=1, add=FALSE, ...) {
 
 ## 3.1 Neighborhood effects
 
-Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates that spatial auto-correlation is present in the dataset even after accounting for neighborhood effects. Even though figures 4-7 indicated a lot of diversity in effects and effect sizes based on neighborhoods, there are only a few coefficients whose $95\%$ posterior credible intervals do not include zero. Only Schuresville and Eastchester in the Bronx (figure 4) and Jamaica Hills and East Elmhurst in Queens (figure 6) have a "significant" effect. Since Queens has the highest popularity intercept and East Elmhurt has a significant positive effect on top of this baseline, it seems like this is the best location for a new Airbnb owner to locate his property! However, overwhelming, the effect of neighbourhoods controlling for distance seems to be negligible. This finding may be the result of NYC's highly interconnected and effecient transit system, which enables visitors to travel to major destinations with ease regardless of their starting point.
+Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates that spatial auto-correlation is present in the dataset even after accounting for neighborhood effects. Even though figures 4-7 indicated a lot of diversity in effects and effect sizes based on neighborhoods, there are only a few coefficients whose $95\%$ posterior credible intervals do not include zero. Only Schuresville and Eastchester in the Bronx (figure 4) and Jamaica Hills and East Elmhurst in Queens (figure 6) have a "significant" effect. Since Queens has the highest popularity intercept and East Elmhurt has a significant positive effect on top of this baseline, it seems like this is the best location for a new Airbnb owner to locate his property. However, overwhelming, the effect of neighbourhoods controlling for distance seems to be negligible. This finding may be the result of NYC's highly interconnected and effecient transit system, which enables visitors to travel to major destinations with ease regardless of their starting point.
 
 
 ## 3.2 Feature effects
@@ -220,7 +220,6 @@ $$\phi_k| \phi_{-k}, W, \tau^2, \rho \sim N(\frac{\rho\sum_{i=1}^k w_{ki}\phi_i}
 $$\tau^2 \sim Inverse-Gamma(a,b)$$
 $$\rho \sim Uniform(0,1)$$
 
-## Spatial Auto-correlation and CAR Model
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE, fig.cap= "Theater District"}
 data <- readRDS("data_transformed.rds")
@@ -236,7 +235,6 @@ data %>% filter(neighbourhood == "Chinatown") %>% ggplot(aes(x  = latitude, y = 
 ```
 
 
-## CAR Model Results
 
 ```{r, warning=FALSE, message=FALSE, echo= FALSE, fig.cap="Rho Coefficients"}
 
@@ -325,7 +323,7 @@ ggplot() +
 -->
 
 
-```{r, fig.width=8, fig.height=3, fig.cap=""}
+```{r, fig.width=8, fig.height=3, fig.cap=" "}
 library(grid)
 library(gridBase)
 library(ggplot2)
