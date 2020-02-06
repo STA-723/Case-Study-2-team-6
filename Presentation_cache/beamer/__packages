@@ -1,0 +1,12 @@
+base
+dplyr
+ggplot2
+quanteda
+tidytext
+Matrix
+lme4
+carData
+car
+xtable
+MASS
+jtools
