@@ -124,9 +124,10 @@ bx_fun <- Vectorize(function(x, lambda) {
   return((x^(lambda)-1)/lambda)
 })
 
-data = data %>% mutate(round_price = price %in% seq(25, 5000, by=25))
+data = data %>% mutate(round_price = price %in% seq(25, 5000, by=25),
+                       female_host = (gender=="Female"))
 
-model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + entire_home + gender + round_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data %>% mutate(entire_home= room_type == "Entire home/apt"))
+model.bx = lm(log(nrml_avg_reviews) ~ bx_fun(price, 0.57422) + bx_fun(dist_to_subway, 0.83087) + bx_fun(months_active, -0.27567) + entire_home + female_host + round_price + private + square + minute + close + stock + apt + sunny + spacious + deluxe + newly + walking + cozy + central + fast + huge + west + green + neighbourhood, data=data %>% mutate(entire_home= room_type == "Entire home/apt"))
 ```
 
 
@@ -168,9 +169,11 @@ Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates
 
 ## 3.2 Feature effects
 
-The global log-linear additive model provides estimates of trends associating features to listing popularity, after accounting for neighborhood baseline effects and other factors.
+The global log-linear additive model provides estimates of trends associating features to listing popularity, after accounting for neighborhood baseline effects and other factors. In the left panel below, we see the estimated multiplicative effect of the continuous variables on popularity compared to the median point of the dataset, as a function of the quantiles of this variable. For instance, looking at the price in blue, we see that lower prices correspond to slighly higher popularity (multiplicative effect relative to median $> 1$), while higher prices are slightly less popular. Here, price and distance to subway have very small effects, while the number of months a listing has been active has a much higher effect on popularity.
 
-```{r, fig.width=7.5, fig.height=3}
+On the right, we see that certain keywords (e.g. "stock", "fast", "minute", "walking", "central") are associated with more popular listings, while others ("spacious", "sunny", "apt", "huge") are associated with less popular ones. Notable, round priced listings (price a multiple of $50$) are less popular, and female hosts' listings are also associated with a slightly smaller average number of reviews per month.
+
+```{r, fig.width=8, fig.height=3}
 library(grid)
 library(gridBase)
 library(ggplot2)
@@ -215,7 +218,7 @@ popViewport()
 pushViewport(vp.2)
 
 
-keywords = c("round_price", "entire_home", "private", "square", "minute", "close", "stock", "apt", "sunny", 
+keywords = c("round_price", "entire_home", "female_host", "private", "square", "minute", "close", "stock", "apt", "sunny", 
              "spacious", "deluxe", "newly", "walking", "cozy", "central", 
              "fast", "huge", "west", "green")
 effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
@@ -243,6 +246,8 @@ popViewport(1)
 
 
 # 4. Discussion
+
+
 
 
 # Appendix
