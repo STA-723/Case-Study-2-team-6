@@ -164,85 +164,16 @@ Figure 3, which depicts the $\rho$ parameter for each borough, clearly indicates
 
 ## 3.2 Feature effects
 
-The global log-linear additive model provides estimates of trends associating features to listing popularity, after accounting for neighborhood baseline effects and other factors. In the left panel below, we see the estimated multiplicative effect of the continuous variables on popularity compared to the median point of the dataset, as a function of the quantiles of this variable. For instance, looking at the price in blue, we see that lower prices correspond to slighly higher popularity (multiplicative effect relative to median $> 1$), while higher prices are slightly less popular. Here, price and distance to subway have very small effects, while the number of months a listing has been active has a much higher effect on popularity.
+The global log-linear additive model provides estimates of trends associating features to listing popularity, after accounting for neighborhood baseline effects and other factors. In the left panel of Figure 8, we see the estimated multiplicative effect of the continuous variables on popularity compared to the median point of the dataset, as a function of the quantiles of this variable. For instance, looking at the price in blue, we see that lower prices correspond to slighly higher popularity (multiplicative effect relative to median $> 1$), while higher prices are slightly less popular. Here, price and distance to subway have very small effects, while the number of months a listing has been active has a much higher effect on popularity.
 
-On the right, we see that certain keywords (e.g. "stock", "fast", "minute", "walking", "central") are associated with more popular listings, while others ("spacious", "sunny", "apt", "huge") are associated with less popular ones. Notable, round priced listings (price a multiple of $50$) are less popular, and female hosts' listings are also associated with a slightly smaller average number of reviews per month.
-
-```{r, fig.width=8, fig.height=3}
-library(grid)
-library(gridBase)
-library(ggplot2)
-
-# start new page
-plot.new() 
-
-# setup layout
-gl <- grid.layout(nrow=1, ncol=2)
-# grid.show.layout(gl)
-
-# setup viewports
-vp.1 <- viewport(layout.pos.col=1, layout.pos.row=1) 
-vp.2 <- viewport(layout.pos.col=2, layout.pos.row=1) 
-# init layout
-pushViewport(viewport(layout=gl))
-# access the first position
-pushViewport(vp.1)
-
-# start new base graphics in first viewport
-par(new=TRUE, fig=gridFIG(), mar=c(3,3,1,1))
-
-par(cex.lab=0.85)
-plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6),
-          cex=0.5, cex.axis=0.7)
-plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
-          add=T, col=2)
-plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
-          bx_fun(data$months_active, -0.27567), 
-          add=T, col=3)
-
-abline(h=1, col=cmap.knitr(0), lty=2)
-
-legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
-       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.7)
-
-
-# done with the first viewport
-popViewport()
-
-# move to the next viewport
-pushViewport(vp.2)
-
-
-keywords = c("round_price", "entire_home", "female_host", "private", "square", "minute", "close", "stock", "apt", "sunny", 
-             "spacious", "deluxe", "newly", "walking", "cozy", "central", 
-             "fast", "huge", "west", "green")
-effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
-confints = confint(model.bx, parm=paste0(keywords, "TRUE"))
-
-order = order(effects)
-
-
-ggplotted = ggplot() +
-  geom_col(mapping=aes(x=reorder(keywords, -effects), y=effects-1)) + 
-  geom_linerange(aes(x=reorder(keywords, -effects), ymin=confints[,1], ymax=confints[,2])) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45))+
-  scale_y_continuous(labels = function(y) y + 1)+
-  ylab("Multiplicative effect on popularity") +
-  xlab("Keywords and factors")
-
-
-# print our ggplot graphics here
-print(ggplotted, newpage = FALSE)
-
-# done with this viewport
-popViewport(1)
-```
+On the right of Figure 8, we see that certain keywords (e.g. "stock", "fast", "minute", "walking", "central") are associated with more popular listings, while others ("spacious", "sunny", "apt", "huge") are associated with less popular ones. Notable, round priced listings (price a multiple of $50$) are less popular, and female hosts' listings are also associated with a slightly smaller average number of reviews per month.
 
 
 # 4. Discussion
 
+Using the CAR model, we were able to show high spatial correlation between the different Airbnb. We also conclusively pointed to the fact that unhears has the highest mean popularity after controlling for spatial correlation. Looking at features of the listings, it is interesting to see that keywords had the most important effect on popularity. This hints at the possibility that the most important features of the listings were in fact what they specifically contained such as the comfort of the space and particular amenities. The dataset only provides limited grasp on this content through the keywords, and any more in-depth analysis might require a more complete dataset. 
 
+Due to computational limitations, we did not jointly model the spatial effects, variable selection of keywords, and non-parametric specification of the transformation of the other continuous variables. Furthermore, we focused on estimating individual trends and our results do not provide insights into the interactions between different variables. The first point could be addressed using the specification of a full Bayesian model with Bayesian model selection/averaging. Second, we could have accounted for non-linear relationships in the variables using more complex non-parametric models such as random forests.
 
 
 # Appendix
@@ -345,6 +276,7 @@ data%>% filter(Variables != "(Intercept)" & Variables != "price" & Variables != 
 data <-readRDS("data_transformed.rds")
 ```
 
+<!--
 ## EDA
 
 We first look at a map of the airbnb listings over New York.
@@ -390,3 +322,78 @@ ggplot() +
   ylim(40.5, 40.95) +
   theme_void()
 ```
+-->
+
+
+```{r, fig.width=8, fig.height=3, fig.cap=""}
+library(grid)
+library(gridBase)
+library(ggplot2)
+
+# start new page
+plot.new() 
+
+# setup layout
+gl <- grid.layout(nrow=1, ncol=2)
+# grid.show.layout(gl)
+
+# setup viewports
+vp.1 <- viewport(layout.pos.col=1, layout.pos.row=1) 
+vp.2 <- viewport(layout.pos.col=2, layout.pos.row=1) 
+# init layout
+pushViewport(viewport(layout=gl))
+# access the first position
+pushViewport(vp.1)
+
+# start new base graphics in first viewport
+par(new=TRUE, fig=gridFIG(), mar=c(3,3,1,1))
+
+par(cex.lab=0.85)
+plot_coef(model.bx, "bx_fun(price, 0.57422)", bx_fun(data$price, 0.57422), ylim=c(0.8,1.6),
+          cex=0.5, cex.axis=0.7)
+plot_coef(model.bx, "bx_fun(dist_to_subway, 0.83087)", bx_fun(data$dist_to_subway, 0.83087), 
+          add=T, col=2)
+plot_coef(model.bx, "bx_fun(months_active, -0.27567)", 
+          bx_fun(data$months_active, -0.27567), 
+          add=T, col=3)
+
+abline(h=1, col=cmap.knitr(0), lty=2)
+
+legend("topright", legend=c("price", "dist_to_subway", "months_active"), lty=c(1,1,1),
+       col=c(cmap.knitr(1), cmap.knitr(2), cmap.knitr(3)), cex=0.7)
+
+
+# done with the first viewport
+popViewport()
+
+# move to the next viewport
+pushViewport(vp.2)
+
+
+keywords = c("round_price", "entire_home", "female_host", "private", "square", "minute", "close", "stock", "apt", "sunny", 
+             "spacious", "deluxe", "newly", "walking", "cozy", "central", 
+             "fast", "huge", "west", "green")
+effects = exp(as.numeric(coef(model.bx)[paste0(keywords, "TRUE")])) %>% round(3)
+confints = confint(model.bx, parm=paste0(keywords, "TRUE"))
+
+order = order(effects)
+
+
+ggplotted = ggplot() +
+  geom_col(mapping=aes(x=reorder(keywords, -effects), y=effects-1)) + 
+  geom_linerange(aes(x=reorder(keywords, -effects), ymin=confints[,1], ymax=confints[,2])) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45))+
+  scale_y_continuous(labels = function(y) y + 1)+
+  ylab("Multiplicative effect on popularity") +
+  xlab("Keywords and factors")
+
+
+# print our ggplot graphics here
+print(ggplotted, newpage = FALSE)
+
+# done with this viewport
+popViewport(1)
+```
+
+
